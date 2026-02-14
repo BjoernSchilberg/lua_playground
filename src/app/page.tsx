@@ -176,12 +176,13 @@ export default function HomePage() {
             value={code}
             onChange={(v) => setCode(v ?? "")}
             options={{
-              fontSize: 14,
+              fontSize: 20,
               minimap: { enabled: false },
               scrollBeyondLastLine: false,
               wordWrap: "on",
               automaticLayout: true,
               tabSize: 2,
+              cursorStyle: "block"
             }}
           />
         </div>
