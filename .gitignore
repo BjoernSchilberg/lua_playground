@@ -38,4 +38,9 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
+
+# Lua WASM build artifacts
+/wasm-lua/lua-5.4.6/
+/wasm-lua/dist/
+/public/lua/
 next-env.d.ts
