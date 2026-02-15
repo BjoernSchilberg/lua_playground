@@ -180,11 +180,24 @@ int lua_bridge_load(lua_State *co, const char *code) {
 /*
  * lua_bridge_resume(co, from, nargs) → int  (0=OK, 1=YIELD, else error)
  * Thin wrapper around lua_resume (Lua 5.4 – 4 args).
+ * Stores nresults so JS can query how many values were yielded.
  */
+static int last_nresults = 0;
+
 EMSCRIPTEN_KEEPALIVE
 int lua_bridge_resume(lua_State *co, lua_State *from, int nargs) {
-    int nresults = 0;
-    return lua_resume(co, from, nargs, &nresults);
+    last_nresults = 0;
+    return lua_resume(co, from, nargs, &last_nresults);
+}
+
+/*
+ * lua_bridge_get_nresults() → int
+ * Returns the nresults from the most recent lua_bridge_resume call.
+ * 0 after a hook yield, >= 1 after a Lua coroutine.yield(...).
+ */
+EMSCRIPTEN_KEEPALIVE
+int lua_bridge_get_nresults(void) {
+    return last_nresults;
 }
 
 /*
@@ -204,6 +217,14 @@ void lua_bridge_clearstack(lua_State *co) {
 }
 
 /*
+ * lua_bridge_pop(co, n) – pop n values from the stack
+ */
+EMSCRIPTEN_KEEPALIVE
+void lua_bridge_pop(lua_State *co, int n) {
+    lua_pop(co, n);
+}
+
+/*
  * lua_bridge_close(L) – close the main state (frees everything incl. threads)
  */
 EMSCRIPTEN_KEEPALIVE
@@ -212,53 +233,24 @@ void lua_bridge_close(lua_State *L) {
 }
 
 /*
- * lua_bridge_setup_hook(co, count)
- * Sets a count-based debug hook on the thread that yields "__slice".
- * The hook Lua code is pushed onto `co` and installed via the debug lib.
- * We do this from C by running a tiny Lua snippet on the *main state*
- * that references the thread.
+ * lua_bridge_setup_hook(L, co, count)
+ * Sets a count-based debug hook on the coroutine thread.
  *
- * Because we cannot easily pass `co` into a Lua dostring on L,
- * we use lua_sethook from C. The C hook calls luaL_error which makes
- * the coroutine yieldable via a trick: we set the hook in Lua land instead.
- *
- * Strategy: push the thread onto the main state, run Lua code that
- * calls debug.sethook on it.
+ * We use a C-level hook that calls lua_yield(L, 0) directly.
+ * Lua 5.4 supports yielding from C hooks: luaG_traceexec checks
+ * L->status == LUA_YIELD after the hook returns and handles it.
+ * The hook yields 0 values (no "__slice" string), so the JS side
+ * must treat a nil yield value as a timeslice signal.
  */
+
+static void timeslice_hook(lua_State *L, lua_Debug *ar) {
+    (void)ar;
+    lua_yield(L, 0);  /* hooks MUST yield 0 values (Lua 5.4 requirement) */
+}
+
 EMSCRIPTEN_KEEPALIVE
 int lua_bridge_setup_hook(lua_State *L, lua_State *co, int count) {
-    /*
-     * We push the coroutine and a Lua closure that sets up the hook.
-     * Using the main state L so we can reference `co` via the stack.
-     */
-    /* Push the setup function */
-    const char *hook_code =
-        "local co, n = ...\n"
-        "debug.sethook(co, function()\n"
-        "  if coroutine.isyieldable() then\n"
-        "    coroutine.yield('__slice')\n"
-        "  end\n"
-        "end, '', n)\n";
-
-    if (luaL_loadstring(L, hook_code) != LUA_OK) {
-        return -1;
-    }
-
-    /* Push the coroutine thread as first arg */
-    lua_pushthread(co);           /* pushes `co` onto co's stack */
-    lua_xmove(co, L, 1);         /* move it to L's stack */
-
-    /* Push count as second arg */
-    lua_pushinteger(L, count);
-
-    /* pcall(hook_code, co, count) */
-    if (lua_pcall(L, 2, 0, 0) != LUA_OK) {
-        const char *err = lua_tostring(L, -1);
-        host_stdout(err ? err : "hook setup error", err ? (int)strlen(err) : 16);
-        host_stdout("\n", 1);
-        lua_pop(L, 1);
-        return -2;
-    }
-
+    (void)L;
+    lua_sethook(co, timeslice_hook, LUA_MASKCOUNT, count);
     return 0;
 }

@@ -22,8 +22,10 @@ interface LuaBridge {
   newthread: (L: Ptr) => Ptr;
   load: (co: Ptr, code: string) => number;
   resume: (co: Ptr, from: Ptr, nargs: number) => number;
+  get_nresults: () => number;
   tostring: (co: Ptr, idx: number) => string | null;
   clearstack: (co: Ptr) => void;
+  pop: (co: Ptr, n: number) => void;
   close: (L: Ptr) => void;
   setup_hook: (L: Ptr, co: Ptr, count: number) => number;
 }
@@ -103,11 +105,13 @@ async function ensureInit(): Promise<void> {
         "number",
         "number",
       ]),
+      get_nresults: Module.cwrap("lua_bridge_get_nresults", "number", []),
       tostring: Module.cwrap("lua_bridge_tostring", "string", [
         "number",
         "number",
       ]),
       clearstack: Module.cwrap("lua_bridge_clearstack", null, ["number"]),
+      pop: Module.cwrap("lua_bridge_pop", null, ["number", "number"]),
       close: Module.cwrap("lua_bridge_close", null, ["number"]),
       setup_hook: Module.cwrap("lua_bridge_setup_hook", "number", [
         "number",
@@ -183,14 +187,17 @@ function tick() {
 
   if (status === 1) {
     // LUA_YIELD
-    const yieldVal = bridge.tostring(co, -1);
-    bridge.clearstack(co);
+    const nresults = bridge.get_nresults();
 
-    if (yieldVal === "__slice") {
-      // Timeslice exhausted – yield to event loop then continue
+    if (nresults === 0) {
+      // Hook yield (C-level timeslice) – no values on stack
       scheduleTick();
       return;
     }
+
+    // Lua-level yield – read the value and pop it
+    const yieldVal = bridge.tostring(co, -1);
+    bridge.pop(co, nresults);
 
     if (yieldVal && yieldVal.startsWith("__sleep:")) {
       // Sleep request – resume after the requested delay
