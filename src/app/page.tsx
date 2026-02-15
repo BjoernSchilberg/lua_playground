@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { LuaWorkerClient } from "@/lib/workerClient";
 import type { MsgFromWorker, WorkerState } from "@/lib/protocol";
-import { loadThemeList, fetchThemeData, isBuiltin, type ThemeEntry } from "@/lib/monacoThemes";
+import { loadThemeList, fetchThemeData, isBuiltin, getThemeColors, type ThemeEntry } from "@/lib/monacoThemes";
 import CommandPalette, { type PaletteItem } from "@/components/CommandPalette";
 import type { Monaco } from "@monaco-editor/react";
 
@@ -72,6 +72,43 @@ const STATUS_COLORS: Record<WorkerState, string> = {
   error: "bg-red-700",
 };
 
+/* ---- Color helpers for adaptive UI ---- */
+
+function hexAdjust(hex: string, amount: number): string {
+  const clamp = (v: number) => Math.max(0, Math.min(255, v));
+  const raw = hex.startsWith("#") ? hex.slice(1) : hex;
+  const r = clamp(parseInt(raw.slice(0, 2), 16) + amount);
+  const g = clamp(parseInt(raw.slice(2, 4), 16) + amount);
+  const b = clamp(parseInt(raw.slice(4, 6), 16) + amount);
+  return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
+}
+
+function luma(hex: string): number {
+  const raw = hex.startsWith("#") ? hex.slice(1) : hex;
+  const r = parseInt(raw.slice(0, 2), 16);
+  const g = parseInt(raw.slice(2, 4), 16);
+  const b = parseInt(raw.slice(4, 6), 16);
+  return (r * 299 + g * 587 + b * 114) / 1000;
+}
+
+/**
+ * Derive a full UI palette from the editor background + foreground colours.
+ */
+function deriveUiColors(bg: string, fg: string) {
+  const dark = luma(bg) < 128;
+  const step = dark ? 12 : -12;
+  return {
+    bg,
+    fg,
+    surface: hexAdjust(bg, step),        // header, console header, input bar
+    surface2: hexAdjust(bg, step * 2),    // menus, world placeholder
+    border: hexAdjust(bg, dark ? 30 : -30),
+    handle: hexAdjust(bg, dark ? 40 : -40),
+    muted: dark ? "#9ca3af" : "#6b7280",  // muted text
+    isDark: dark,
+  };
+}
+
 export default function HomePage() {
   const [code, setCode] = useState(DEFAULT_CODE);
   const [consoleLines, setConsoleLines] = useState<
@@ -94,6 +131,21 @@ export default function HomePage() {
   const [themeList, setThemeList] = useState<ThemeEntry[]>([]);
   const monacoRef = useRef<Monaco | null>(null);
   const definedThemes = useRef(new Set<string>());
+
+  /* ---- Adaptive UI colours derived from editor theme ---- */
+  const [themeBg, setThemeBg] = useState("#1e1e1e");
+  const [themeFg, setThemeFg] = useState("#d4d4d4");
+  const ui = useMemo(() => deriveUiColors(themeBg, themeFg), [themeBg, themeFg]);
+
+  /** Update the UI palette from a theme id (+ optional pre-fetched data) */
+  const applyThemeColors = useCallback(
+    (themeId: string, data?: Parameters<typeof getThemeColors>[1]) => {
+      const { bg, fg } = getThemeColors(themeId, data);
+      setThemeBg(bg);
+      setThemeFg(fg);
+    },
+    []
+  );
 
   /* ---- Resizable panel state ---- */
   const [editorWidthPct, setEditorWidthPct] = useState(70); // % of main width for editor
@@ -136,26 +188,30 @@ export default function HomePage() {
 
     if (isBuiltin(themeId)) {
       setEditorTheme(themeId);
+      applyThemeColors(themeId);
+      themeBeforePalette.current = themeId;
+      setPaletteOpen(false);
       return;
     }
 
     const monaco = monacoRef.current;
     if (!monaco) return;
 
-    // Define the theme if not yet registered
+    let data = null;
     if (!definedThemes.current.has(themeId)) {
       const entry = themeList.find((t) => t.id === themeId);
       if (!entry) return;
-      const data = await fetchThemeData(entry);
+      data = await fetchThemeData(entry);
       if (!data) return;
       monaco.editor.defineTheme(themeId, data);
       definedThemes.current.add(themeId);
     }
 
     setEditorTheme(themeId);
+    applyThemeColors(themeId, data);
     themeBeforePalette.current = themeId;
     setPaletteOpen(false);
-  }, [themeList]);
+  }, [themeList, applyThemeColors]);
 
   /** Apply theme live as the user navigates the palette */
   const handlePaletteHighlight = useCallback(async (id: string) => {
@@ -164,29 +220,33 @@ export default function HomePage() {
 
     if (isBuiltin(themeId)) {
       setEditorTheme(themeId);
+      applyThemeColors(themeId);
       return;
     }
 
     const monaco = monacoRef.current;
     if (!monaco) return;
 
+    let data = null;
     if (!definedThemes.current.has(themeId)) {
       const entry = themeList.find((t) => t.id === themeId);
       if (!entry) return;
-      const data = await fetchThemeData(entry);
+      data = await fetchThemeData(entry);
       if (!data) return;
       monaco.editor.defineTheme(themeId, data);
       definedThemes.current.add(themeId);
     }
 
     setEditorTheme(themeId);
-  }, [themeList]);
+    applyThemeColors(themeId, data);
+  }, [themeList, applyThemeColors]);
 
   /** Restore previous theme when palette is cancelled */
   const handlePaletteCancel = useCallback(() => {
     setEditorTheme(themeBeforePalette.current);
+    applyThemeColors(themeBeforePalette.current);
     setPaletteOpen(false);
-  }, []);
+  }, [applyThemeColors]);
 
   /* ---- Keyboard shortcut: Ctrl/Cmd+Shift+P ---- */
   useEffect(() => {
@@ -449,9 +509,9 @@ export default function HomePage() {
   const isRunning = status === "running" || status === "waiting_input";
 
   return (
-    <div className="flex flex-col h-dvh bg-[#0d1117] text-neutral-200 font-mono">
+    <div className="flex flex-col h-dvh font-mono transition-colors duration-200" style={{ backgroundColor: ui.bg, color: ui.fg }}>
       {/* ---- Header / Toolbar ---- */}
-      <header className="flex items-center gap-3 px-4 py-2 bg-[#161b22] border-b border-neutral-700 shrink-0">
+      <header className="flex items-center gap-3 px-4 py-2 shrink-0 transition-colors duration-200" style={{ backgroundColor: ui.surface, borderBottom: `1px solid ${ui.border}` }}>
         <h1 className="text-lg font-bold mr-4 select-none">🌙 Lua Playground</h1>
 
         {/* ---- File menu ---- */}
@@ -464,7 +524,7 @@ export default function HomePage() {
           </button>
 
           {showFileMenu && (
-            <div className="absolute left-0 top-full mt-1 w-72 bg-[#1c2128] border border-neutral-600 rounded shadow-xl z-50 text-sm">
+            <div className="absolute left-0 top-full mt-1 w-72 rounded shadow-xl z-50 text-sm" style={{ backgroundColor: ui.surface2, border: `1px solid ${ui.border}` }}>
               {/* Save */}
               {!saveDialogOpen ? (
                 <button
@@ -633,11 +693,12 @@ export default function HomePage() {
           <div
             onMouseDown={startHDrag}
             onTouchStart={startHDrag}
-            className="w-3 cursor-col-resize bg-neutral-700 hover:bg-blue-500 active:bg-blue-500 transition-colors shrink-0 touch-none"
+            className="w-3 cursor-col-resize hover:bg-blue-500 active:bg-blue-500 transition-colors shrink-0 touch-none"
+            style={{ backgroundColor: ui.handle }}
           />
 
           {/* World placeholder (Phase 2) */}
-          <div className="flex-1 min-w-0 bg-[#1c2333] flex flex-col items-center justify-center text-neutral-500 select-none">
+          <div className="flex-1 min-w-0 flex flex-col items-center justify-center select-none" style={{ backgroundColor: ui.surface2, color: ui.muted }}>
             <div className="text-4xl mb-2">🌍</div>
             <div className="text-sm">Isometric World</div>
             <div className="text-xs mt-1">(Phase 2)</div>
@@ -648,12 +709,13 @@ export default function HomePage() {
         <div
           onMouseDown={startVDrag}
           onTouchStart={startVDrag}
-          className="h-3 cursor-row-resize bg-neutral-700 hover:bg-blue-500 active:bg-blue-500 transition-colors shrink-0 touch-none"
+          className="h-3 cursor-row-resize hover:bg-blue-500 active:bg-blue-500 transition-colors shrink-0 touch-none"
+          style={{ backgroundColor: ui.handle }}
         />
 
         {/* ---- Console ---- */}
-        <div className="bg-[#0d1117] flex flex-col min-h-0" style={{ flex: `${consolePct} 0 0%` }}>
-          <div className="px-3 py-1 text-xs text-neutral-500 bg-[#161b22] border-b border-neutral-800 select-none">
+        <div className="flex flex-col min-h-0 transition-colors duration-200" style={{ flex: `${consolePct} 0 0%`, backgroundColor: ui.bg }}>
+          <div className="px-3 py-1 text-xs select-none transition-colors duration-200" style={{ backgroundColor: ui.surface, color: ui.muted, borderBottom: `1px solid ${ui.border}` }}>
             Console
           </div>
           <pre className="flex-1 overflow-y-auto px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap">
@@ -671,7 +733,8 @@ export default function HomePage() {
           {/* Input line */}
           <form
             onSubmit={handleInputSubmit}
-            className="flex items-center gap-2 px-3 py-1.5 bg-[#161b22] border-t border-neutral-800"
+            className="flex items-center gap-2 px-3 py-1.5 transition-colors duration-200"
+            style={{ backgroundColor: ui.surface, borderTop: `1px solid ${ui.border}` }}
           >
             <span className="text-green-500 text-sm select-none">&gt;</span>
             <input
@@ -685,7 +748,8 @@ export default function HomePage() {
                   ? "Type input and press Enter…"
                   : "Input disabled"
               }
-              className="flex-1 bg-transparent outline-none text-sm text-neutral-200 placeholder:text-neutral-600 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex-1 bg-transparent outline-none text-sm placeholder:text-neutral-600 disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{ color: ui.fg }}
             />
           </form>
         </div>

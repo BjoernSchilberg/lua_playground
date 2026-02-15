@@ -83,5 +83,45 @@ export async function fetchThemeData(
   }
 }
 
+/* ---- Background-color helpers ---- */
+
+const BUILTIN_BG: Record<string, { bg: string; fg: string }> = {
+  "vs-dark": { bg: "#1e1e1e", fg: "#d4d4d4" },
+  vs: { bg: "#ffffff", fg: "#000000" },
+  "hc-black": { bg: "#000000", fg: "#ffffff" },
+};
+
+/**
+ * Extract background + foreground from theme data or built-in id.
+ */
+export function getThemeColors(
+  themeId: string,
+  data?: editor.IStandaloneThemeData | null
+): { bg: string; fg: string } {
+  if (BUILTIN_IDS.has(themeId)) {
+    return BUILTIN_BG[themeId] ?? BUILTIN_BG["vs-dark"];
+  }
+
+  const d = data ?? themeCache.get(themeId);
+  if (!d) return BUILTIN_BG["vs-dark"];
+
+  const colors = d.colors as Record<string, string> | undefined;
+  const bg =
+    colors?.["editor.background"] ??
+    (() => {
+      // fallback: first rule with a "background" field
+      const rule = d.rules?.find(
+        (r) => "background" in r && (r as Record<string, unknown>).background
+      );
+      const raw = rule
+        ? ((rule as Record<string, unknown>).background as string)
+        : undefined;
+      return raw ? (raw.startsWith("#") ? raw : `#${raw}`) : "#1e1e1e";
+    })();
+  const fg = colors?.["editor.foreground"] ?? "#d4d4d4";
+
+  return { bg, fg };
+}
+
 
 
