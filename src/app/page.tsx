@@ -128,6 +128,8 @@ export default function HomePage() {
     [themeList]
   );
 
+  const themeBeforePalette = useRef("vs-dark");
+
   const handlePaletteSelect = useCallback(async (id: string) => {
     if (!id.startsWith("theme:")) return;
     const themeId = id.slice(6);
@@ -151,19 +153,61 @@ export default function HomePage() {
     }
 
     setEditorTheme(themeId);
+    themeBeforePalette.current = themeId;
+    setPaletteOpen(false);
   }, [themeList]);
+
+  /** Apply theme live as the user navigates the palette */
+  const handlePaletteHighlight = useCallback(async (id: string) => {
+    if (!id.startsWith("theme:")) return;
+    const themeId = id.slice(6);
+
+    if (isBuiltin(themeId)) {
+      setEditorTheme(themeId);
+      return;
+    }
+
+    const monaco = monacoRef.current;
+    if (!monaco) return;
+
+    if (!definedThemes.current.has(themeId)) {
+      const entry = themeList.find((t) => t.id === themeId);
+      if (!entry) return;
+      const data = await fetchThemeData(entry);
+      if (!data) return;
+      monaco.editor.defineTheme(themeId, data);
+      definedThemes.current.add(themeId);
+    }
+
+    setEditorTheme(themeId);
+  }, [themeList]);
+
+  /** Restore previous theme when palette is cancelled */
+  const handlePaletteCancel = useCallback(() => {
+    setEditorTheme(themeBeforePalette.current);
+    setPaletteOpen(false);
+  }, []);
 
   /* ---- Keyboard shortcut: Ctrl/Cmd+Shift+P ---- */
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "P") {
         e.preventDefault();
-        setPaletteOpen((v) => !v);
+        setPaletteOpen((prev) => {
+          if (!prev) {
+            // Opening: remember current theme
+            themeBeforePalette.current = editorTheme;
+          } else {
+            // Closing via shortcut: restore
+            setEditorTheme(themeBeforePalette.current);
+          }
+          return !prev;
+        });
       }
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, []);
+  }, [editorTheme]);
 
   // Auto-scroll console
   useEffect(() => {
@@ -552,7 +596,7 @@ export default function HomePage() {
         </span>
 
         <button
-          onClick={() => setPaletteOpen(true)}
+          onClick={() => { themeBeforePalette.current = editorTheme; setPaletteOpen(true); }}
           className="px-3 py-1 rounded bg-neutral-700 hover:bg-neutral-600 text-sm font-semibold transition-colors"
           title="Command Palette (Ctrl+Shift+P)"
         >
@@ -651,9 +695,10 @@ export default function HomePage() {
       {/* ---- Command Palette ---- */}
       <CommandPalette
         open={paletteOpen}
-        onClose={() => setPaletteOpen(false)}
+        onClose={handlePaletteCancel}
         items={paletteItems}
         onSelect={handlePaletteSelect}
+        onHighlight={handlePaletteHighlight}
         placeholder="Select theme…"
       />
     </div>

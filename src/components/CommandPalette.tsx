@@ -14,6 +14,8 @@ interface Props {
   onClose: () => void;
   items: PaletteItem[];
   onSelect: (id: string) => void;
+  /** Called whenever the highlighted (active) item changes */
+  onHighlight?: (id: string) => void;
   placeholder?: string;
 }
 
@@ -22,6 +24,7 @@ export default function CommandPalette({
   onClose,
   items,
   onSelect,
+  onHighlight,
   placeholder = "Type to search…",
 }: Props) {
   const [query, setQuery] = useState("");
@@ -55,11 +58,14 @@ export default function CommandPalette({
     setActiveIdx((prev) => Math.min(prev, Math.max(0, filtered.length - 1)));
   }, [filtered]);
 
-  // Scroll active item into view
+  // Scroll active item into view + notify highlight
   useEffect(() => {
     const el = listRef.current?.children[activeIdx] as HTMLElement | undefined;
     el?.scrollIntoView({ block: "nearest" });
-  }, [activeIdx]);
+    if (filtered[activeIdx] && onHighlight) {
+      onHighlight(filtered[activeIdx].id);
+    }
+  }, [activeIdx, filtered, onHighlight]);
 
   const handleKey = (e: React.KeyboardEvent) => {
     switch (e.key) {
