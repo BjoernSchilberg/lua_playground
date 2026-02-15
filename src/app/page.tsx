@@ -31,6 +31,7 @@ const STORAGE_KEY = "lua_playground_scripts";
 
 const EXAMPLES: { name: string; file: string }[] = [
   { name: "Conway's Game of Life", file: "/examples/conway.lua" },
+  { name: "Beispiel für Eingabe", file: "/examples/input.lua" },
 ];
 
 /* ---- localStorage helpers ---- */
