@@ -85,6 +85,12 @@ export default function HomePage() {
   const [saveName, setSaveName] = useState("");
   const [currentFileName, setCurrentFileName] = useState("");
 
+  /* ---- Resizable panel state ---- */
+  const [editorWidthPct, setEditorWidthPct] = useState(70); // % of main width for editor
+  const [consolePct, setConsolePct] = useState(30); // % of available height for console
+  const mainRef = useRef<HTMLDivElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
   const workerRef = useRef<LuaWorkerClient | null>(null);
   const consoleEndRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -122,6 +128,74 @@ export default function HomePage() {
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [showFileMenu]);
+
+  /* ---- Drag resize helpers ---- */
+
+  const startHDrag = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
+    const isTouch = "touches" in e;
+    const startX = isTouch ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
+    const startPct = editorWidthPct;
+    const main = mainRef.current;
+    if (!main) return;
+    const totalW = main.getBoundingClientRect().width;
+
+    const getX = (ev: MouseEvent | TouchEvent) =>
+      "touches" in ev ? ev.touches[0].clientX : (ev as MouseEvent).clientX;
+
+    const onMove = (ev: MouseEvent | TouchEvent) => {
+      const delta = getX(ev) - startX;
+      const newPct = startPct + (delta / totalW) * 100;
+      setEditorWidthPct(Math.min(Math.max(newPct, 20), 90));
+    };
+    const onUp = () => {
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+      document.removeEventListener("touchmove", onMove);
+      document.removeEventListener("touchend", onUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+    document.addEventListener("touchmove", onMove, { passive: false });
+    document.addEventListener("touchend", onUp);
+  }, [editorWidthPct]);
+
+  const startVDrag = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
+    const isTouch = "touches" in e;
+    const startY = isTouch ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
+    const startPct = consolePct;
+    const container = containerRef.current;
+    if (!container) return;
+    const totalH = container.getBoundingClientRect().height;
+
+    const getY = (ev: MouseEvent | TouchEvent) =>
+      "touches" in ev ? ev.touches[0].clientY : (ev as MouseEvent).clientY;
+
+    const onMove = (ev: MouseEvent | TouchEvent) => {
+      const delta = startY - getY(ev); // up = bigger console
+      const newPct = startPct + (delta / totalH) * 100;
+      setConsolePct(Math.min(Math.max(newPct, 10), 70));
+    };
+    const onUp = () => {
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+      document.removeEventListener("touchmove", onMove);
+      document.removeEventListener("touchend", onUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+    document.body.style.cursor = "row-resize";
+    document.body.style.userSelect = "none";
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+    document.addEventListener("touchmove", onMove, { passive: false });
+    document.addEventListener("touchend", onUp);
+  }, [consolePct]);
 
   const handleWorkerMsg = useCallback((msg: MsgFromWorker) => {
     switch (msg.type) {
@@ -263,7 +337,7 @@ export default function HomePage() {
   const isRunning = status === "running" || status === "waiting_input";
 
   return (
-    <div className="flex flex-col h-screen bg-[#0d1117] text-neutral-200 font-mono">
+    <div className="flex flex-col h-dvh bg-[#0d1117] text-neutral-200 font-mono">
       {/* ---- Header / Toolbar ---- */}
       <header className="flex items-center gap-3 px-4 py-2 bg-[#161b22] border-b border-neutral-700 shrink-0">
         <h1 className="text-lg font-bold mr-4 select-none">🌙 Lua Playground</h1>
@@ -410,72 +484,91 @@ export default function HomePage() {
         </span>
       </header>
 
-      {/* ---- Main: Editor + World placeholder ---- */}
-      <main className="flex flex-1 min-h-0">
-        {/* Editor panel */}
-        <div className="flex-1 min-w-0">
-          <MonacoEditor
-            language="lua"
-            theme="vs-dark"
-            value={code}
-            onChange={(v) => setCode(v ?? "")}
-            options={{
-              fontSize: 20,
-              minimap: { enabled: false },
-              scrollBeyondLastLine: false,
-              wordWrap: "on",
-              automaticLayout: true,
-              tabSize: 2,
-              cursorStyle: "block"
-            }}
+      {/* ---- Content area (main + console, split vertically) ---- */}
+      <div ref={containerRef} className="flex flex-col flex-1 min-h-0">
+
+        {/* ---- Main: Editor + World placeholder (split horizontally) ---- */}
+        <main ref={mainRef} className="flex min-h-0" style={{ flex: `${100 - consolePct} 0 0%` }}>
+          {/* Editor panel */}
+          <div className="min-w-0 overflow-hidden" style={{ width: `${editorWidthPct}%` }}>
+            <MonacoEditor
+              language="lua"
+              theme="vs-dark"
+              value={code}
+              onChange={(v) => setCode(v ?? "")}
+              options={{
+                fontSize: 20,
+                minimap: { enabled: false },
+                scrollBeyondLastLine: false,
+                wordWrap: "on",
+                automaticLayout: true,
+                tabSize: 2,
+                cursorStyle: "block"
+              }}
+            />
+          </div>
+
+          {/* Vertical drag handle */}
+          <div
+            onMouseDown={startHDrag}
+            onTouchStart={startHDrag}
+            className="w-3 cursor-col-resize bg-neutral-700 hover:bg-blue-500 active:bg-blue-500 transition-colors shrink-0 touch-none"
           />
+
+          {/* World placeholder (Phase 2) */}
+          <div className="flex-1 min-w-0 bg-[#1c2333] flex flex-col items-center justify-center text-neutral-500 select-none">
+            <div className="text-4xl mb-2">🌍</div>
+            <div className="text-sm">Isometric World</div>
+            <div className="text-xs mt-1">(Phase 2)</div>
+          </div>
+        </main>
+
+        {/* Horizontal drag handle */}
+        <div
+          onMouseDown={startVDrag}
+          onTouchStart={startVDrag}
+          className="h-3 cursor-row-resize bg-neutral-700 hover:bg-blue-500 active:bg-blue-500 transition-colors shrink-0 touch-none"
+        />
+
+        {/* ---- Console ---- */}
+        <div className="bg-[#0d1117] flex flex-col min-h-0" style={{ flex: `${consolePct} 0 0%` }}>
+          <div className="px-3 py-1 text-xs text-neutral-500 bg-[#161b22] border-b border-neutral-800 select-none">
+            Console
+          </div>
+          <pre className="flex-1 overflow-y-auto px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap">
+            {consoleLines.map((line, i) => (
+              <span
+                key={i}
+                className={line.isError ? "text-red-400" : "text-green-400"}
+              >
+                {line.text}
+              </span>
+            ))}
+            <div ref={consoleEndRef} />
+          </pre>
+
+          {/* Input line */}
+          <form
+            onSubmit={handleInputSubmit}
+            className="flex items-center gap-2 px-3 py-1.5 bg-[#161b22] border-t border-neutral-800"
+          >
+            <span className="text-green-500 text-sm select-none">&gt;</span>
+            <input
+              ref={inputRef}
+              type="text"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              disabled={status !== "waiting_input"}
+              placeholder={
+                status === "waiting_input"
+                  ? "Type input and press Enter…"
+                  : "Input disabled"
+              }
+              className="flex-1 bg-transparent outline-none text-sm text-neutral-200 placeholder:text-neutral-600 disabled:opacity-40 disabled:cursor-not-allowed"
+            />
+          </form>
         </div>
 
-        {/* World placeholder (Phase 2) */}
-        <div className="w-72 bg-[#1c2333] border-l border-neutral-700 flex flex-col items-center justify-center text-neutral-500 select-none shrink-0">
-          <div className="text-4xl mb-2">🌍</div>
-          <div className="text-sm">Isometric World</div>
-          <div className="text-xs mt-1">(Phase 2)</div>
-        </div>
-      </main>
-
-      {/* ---- Console ---- */}
-      <div className="h-52 bg-[#0d1117] border-t border-neutral-700 flex flex-col shrink-0">
-        <div className="px-3 py-1 text-xs text-neutral-500 bg-[#161b22] border-b border-neutral-800 select-none">
-          Console
-        </div>
-        <pre className="flex-1 overflow-y-auto px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap">
-          {consoleLines.map((line, i) => (
-            <span
-              key={i}
-              className={line.isError ? "text-red-400" : "text-green-400"}
-            >
-              {line.text}
-            </span>
-          ))}
-          <div ref={consoleEndRef} />
-        </pre>
-
-        {/* Input line */}
-        <form
-          onSubmit={handleInputSubmit}
-          className="flex items-center gap-2 px-3 py-1.5 bg-[#161b22] border-t border-neutral-800"
-        >
-          <span className="text-green-500 text-sm select-none">&gt;</span>
-          <input
-            ref={inputRef}
-            type="text"
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            disabled={status !== "waiting_input"}
-            placeholder={
-              status === "waiting_input"
-                ? "Type input and press Enter…"
-                : "Input disabled"
-            }
-            className="flex-1 bg-transparent outline-none text-sm text-neutral-200 placeholder:text-neutral-600 disabled:opacity-40 disabled:cursor-not-allowed"
-          />
-        </form>
       </div>
     </div>
   );
