@@ -229,7 +229,9 @@ int lua_bridge_setup_hook(lua_State *L, lua_State *co, int count) {
     const char *hook_code =
         "local co, n = ...\n"
         "debug.sethook(co, function()\n"
-        "  coroutine.yield('__slice')\n"
+        "  if coroutine.isyieldable() then\n"
+        "    coroutine.yield('__slice')\n"
+        "  end\n"
         "end, '', n)\n";
 
     if (luaL_loadstring(L, hook_code) != LUA_OK) {
