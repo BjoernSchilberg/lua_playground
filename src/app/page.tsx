@@ -297,6 +297,21 @@ export default function HomePage() {
   const paletteItems: PaletteItem[] = useMemo(
     () => [
       {
+        id: "run:start",
+        label: "Run",
+        category: "Lua",
+      },
+      {
+        id: "run:stop",
+        label: "Stop",
+        category: "Lua",
+      },
+      {
+        id: "run:reset",
+        label: "Reset",
+        category: "Lua",
+      },
+      {
         id: "file:new",
         label: "Neu",
         category: "File",
@@ -429,6 +444,21 @@ export default function HomePage() {
         editorRef.current?.updateOptions({ lineNumbers: next ? "on" : "off" });
         return next;
       });
+      setPaletteOpen(false);
+      return;
+    }
+    if (id === "run:start") {
+      handleRun();
+      setPaletteOpen(false);
+      return;
+    }
+    if (id === "run:stop") {
+      handleStop();
+      setPaletteOpen(false);
+      return;
+    }
+    if (id === "run:reset") {
+      handleReset();
       setPaletteOpen(false);
       return;
     }
