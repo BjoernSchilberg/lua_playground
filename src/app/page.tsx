@@ -707,6 +707,14 @@ export default function HomePage() {
 
           {showFileMenu && (
             <div className="absolute left-0 top-full mt-1 w-72 rounded shadow-xl z-50 text-sm" style={{ backgroundColor: ui.surface2, border: `1px solid ${ui.border}` }}>
+              {/* New */}
+              <button
+                onClick={() => { setCode(""); setCurrentFileName(""); setShowFileMenu(false); }}
+                className="w-full text-left px-3 py-2 hover:bg-neutral-700 transition-colors"
+              >
+                📝 Neu
+              </button>
+
               {/* Save */}
               {!saveDialogOpen ? (
                 <button
