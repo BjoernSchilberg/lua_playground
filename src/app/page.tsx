@@ -20,12 +20,10 @@ const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
 });
 
 const DEFAULT_CODE = `print("Lua WASM ready ✅")
-io.write("Wie heißt du? ")
-local n = io.read()
-print("Hallo", n)
-
-print("Endlosschleife – Stop klicken")
-while true do end
+print("Wie heißt du? ")
+name = io.read()
+print("Hallo " .. name)
+-- Probiere es aus: Schreibe Lua-Code hier und klicke "Run"!
 `;
 
 const STORAGE_KEY = "lua_playground_scripts";
