@@ -105,6 +105,11 @@ function deriveUiColors(bg: string, fg: string) {
     border: hexAdjust(bg, dark ? 30 : -30),
     handle: hexAdjust(bg, dark ? 40 : -40),
     muted: dark ? "#9ca3af" : "#6b7280",  // muted text
+    consoleText: dark ? "#4ade80" : "#166534",   // green-400 / green-800
+    consoleError: dark ? "#f87171" : "#b91c1c",  // red-400 / red-700
+    btnNeutral: dark ? "#404040" : "#d4d4d4",       // neutral button bg
+    btnNeutralHover: dark ? "#525252" : "#c0c0c0",  // neutral button hover
+    btnNeutralText: dark ? "#e5e5e5" : "#1a1a1a",   // neutral button text
     isDark: dark,
   };
 }
@@ -644,20 +649,30 @@ export default function HomePage() {
         <button
           onClick={handleReset}
           disabled={!ready}
-          className="px-3 py-1 rounded bg-neutral-700 hover:bg-neutral-600 disabled:opacity-40 disabled:cursor-not-allowed text-sm font-semibold transition-colors"
+          className="px-3 py-1 rounded disabled:opacity-40 disabled:cursor-not-allowed text-sm font-semibold transition-colors"
+          style={{ backgroundColor: ui.btnNeutral, color: ui.btnNeutralText }}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = ui.btnNeutralHover}
+          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = ui.btnNeutral}
         >
           ↻ Reset
         </button>
 
         <span
-          className={`ml-auto px-2 py-0.5 rounded text-xs font-medium ${STATUS_COLORS[status]}`}
+          className={`ml-auto px-2 py-0.5 rounded text-xs font-medium ${status !== "idle" ? STATUS_COLORS[status] : ""}`}
+          style={{
+            color: ui.btnNeutralText,
+            ...(status === "idle" ? { backgroundColor: ui.btnNeutral } : {}),
+          }}
         >
           {STATUS_LABELS[status]}
         </span>
 
         <button
           onClick={() => { themeBeforePalette.current = editorTheme; setPaletteOpen(true); }}
-          className="px-3 py-1 rounded bg-neutral-700 hover:bg-neutral-600 text-sm font-semibold transition-colors"
+          className="px-3 py-1 rounded text-sm font-semibold transition-colors"
+          style={{ backgroundColor: ui.btnNeutral, color: ui.btnNeutralText }}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = ui.btnNeutralHover}
+          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = ui.btnNeutral}
           title="Command Palette (Ctrl+Shift+P)"
         >
           ⌘ Palette
@@ -722,7 +737,7 @@ export default function HomePage() {
             {consoleLines.map((line, i) => (
               <span
                 key={i}
-                className={line.isError ? "text-red-400" : "text-green-400"}
+                style={{ color: line.isError ? ui.consoleError : ui.consoleText }}
               >
                 {line.text}
               </span>
