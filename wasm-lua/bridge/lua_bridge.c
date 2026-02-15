@@ -107,6 +107,12 @@ static const char *BOOTSTRAP_LUA =
     "  coroutine.yield('__stdin')\n"
     "  return _spop()\n"
     "end\n"
+    /* ---- io.flush (no-op in browser) ---- */
+    "io.flush = function() end\n"
+    /* ---- sleep(ms) via coroutine yield ---- */
+    "function sleep(ms)\n"
+    "  coroutine.yield('__sleep:' .. math.floor(ms))\n"
+    "end\n"
     /* ---- disable dangerous os functions ---- */
     "os.execute = nil\n"
     "os.exit = nil\n"
