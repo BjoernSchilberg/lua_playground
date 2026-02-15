@@ -24,6 +24,35 @@ print("Endlosschleife – Stop klicken")
 while true do end
 `;
 
+const STORAGE_KEY = "lua_playground_scripts";
+
+const EXAMPLES: { name: string; file: string }[] = [
+  { name: "Conway's Game of Life", file: "/examples/conway.lua" },
+];
+
+/* ---- localStorage helpers ---- */
+
+function getSavedScripts(): Record<string, string> {
+  if (typeof window === "undefined") return {};
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+  } catch {
+    return {};
+  }
+}
+
+function saveScript(name: string, code: string) {
+  const scripts = getSavedScripts();
+  scripts[name] = code;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(scripts));
+}
+
+function deleteScript(name: string) {
+  const scripts = getSavedScripts();
+  delete scripts[name];
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(scripts));
+}
+
 const STATUS_LABELS: Record<WorkerState, string> = {
   idle: "Idle",
   running: "Running…",
@@ -49,9 +78,17 @@ export default function HomePage() {
   const [inputValue, setInputValue] = useState("");
   const [ready, setReady] = useState(false);
 
+  /* ---- File menu state ---- */
+  const [showFileMenu, setShowFileMenu] = useState(false);
+  const [savedNames, setSavedNames] = useState<string[]>([]);
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [saveName, setSaveName] = useState("");
+
   const workerRef = useRef<LuaWorkerClient | null>(null);
   const consoleEndRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
 
   // Auto-scroll console
   useEffect(() => {
@@ -64,6 +101,26 @@ export default function HomePage() {
       inputRef.current?.focus();
     }
   }, [status]);
+
+  // Refresh saved script list when menu opens
+  useEffect(() => {
+    if (showFileMenu) {
+      setSavedNames(Object.keys(getSavedScripts()));
+    }
+  }, [showFileMenu]);
+
+  // Close menu on outside click
+  useEffect(() => {
+    if (!showFileMenu) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setShowFileMenu(false);
+        setSaveDialogOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showFileMenu]);
 
   const handleWorkerMsg = useCallback((msg: MsgFromWorker) => {
     switch (msg.type) {
@@ -129,6 +186,75 @@ export default function HomePage() {
     setInputValue("");
   };
 
+  /* ---- File actions ---- */
+
+  const handleSave = () => {
+    const trimmed = saveName.trim();
+    if (!trimmed) return;
+    saveScript(trimmed, code);
+    setSavedNames(Object.keys(getSavedScripts()));
+    setSaveDialogOpen(false);
+    setSaveName("");
+    setShowFileMenu(false);
+  };
+
+  const handleLoad = (name: string) => {
+    const scripts = getSavedScripts();
+    if (scripts[name]) {
+      setCode(scripts[name]);
+    }
+    setShowFileMenu(false);
+  };
+
+  const handleDelete = (name: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm(`"${name}" wirklich löschen?`)) return;
+    deleteScript(name);
+    setSavedNames(Object.keys(getSavedScripts()));
+  };
+
+  const handleDownload = () => {
+    const blob = new Blob([code], { type: "text/x-lua" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "script.lua";
+    a.click();
+    URL.revokeObjectURL(url);
+    setShowFileMenu(false);
+  };
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+    setShowFileMenu(false);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        setCode(reader.result);
+      }
+    };
+    reader.readAsText(file);
+    // Reset so the same file can be loaded again
+    e.target.value = "";
+  };
+
+  const handleLoadExample = async (file: string) => {
+    try {
+      const res = await fetch(file);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const text = await res.text();
+      setCode(text);
+    } catch (err) {
+      console.error("Failed to load example:", err);
+    }
+    setShowFileMenu(false);
+  };
+
   const isRunning = status === "running" || status === "waiting_input";
 
   return (
@@ -136,6 +262,119 @@ export default function HomePage() {
       {/* ---- Header / Toolbar ---- */}
       <header className="flex items-center gap-3 px-4 py-2 bg-[#161b22] border-b border-neutral-700 shrink-0">
         <h1 className="text-lg font-bold mr-4 select-none">🌙 Lua Playground</h1>
+
+        {/* ---- File menu ---- */}
+        <div className="relative" ref={menuRef}>
+          <button
+            onClick={() => { setShowFileMenu((v) => !v); setSaveDialogOpen(false); }}
+            className="px-3 py-1 rounded bg-blue-700 hover:bg-blue-600 text-sm font-semibold transition-colors"
+          >
+            📁 File
+          </button>
+
+          {showFileMenu && (
+            <div className="absolute left-0 top-full mt-1 w-72 bg-[#1c2128] border border-neutral-600 rounded shadow-xl z-50 text-sm">
+              {/* Save */}
+              {!saveDialogOpen ? (
+                <button
+                  onClick={() => setSaveDialogOpen(true)}
+                  className="w-full text-left px-3 py-2 hover:bg-neutral-700 transition-colors"
+                >
+                  💾 Speichern…
+                </button>
+              ) : (
+                <form
+                  onSubmit={(e) => { e.preventDefault(); handleSave(); }}
+                  className="flex items-center gap-2 px-3 py-2 border-b border-neutral-700"
+                >
+                  <input
+                    autoFocus
+                    type="text"
+                    value={saveName}
+                    onChange={(e) => setSaveName(e.target.value)}
+                    placeholder="Name eingeben…"
+                    className="flex-1 bg-neutral-800 rounded px-2 py-1 text-sm outline-none text-neutral-200 placeholder:text-neutral-500"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!saveName.trim()}
+                    className="px-2 py-1 rounded bg-green-700 hover:bg-green-600 disabled:opacity-40 text-xs font-semibold"
+                  >
+                    OK
+                  </button>
+                </form>
+              )}
+
+              {/* Download */}
+              <button
+                onClick={handleDownload}
+                className="w-full text-left px-3 py-2 hover:bg-neutral-700 transition-colors"
+              >
+                ⬇ Download .lua
+              </button>
+
+              {/* Upload */}
+              <button
+                onClick={handleUploadClick}
+                className="w-full text-left px-3 py-2 hover:bg-neutral-700 transition-colors border-b border-neutral-700"
+              >
+                ⬆ Datei öffnen…
+              </button>
+
+              {/* Saved scripts */}
+              {savedNames.length > 0 && (
+                <>
+                  <div className="px-3 py-1.5 text-neutral-500 text-xs font-semibold uppercase tracking-wide">
+                    Gespeicherte Skripte
+                  </div>
+                  {savedNames.map((name) => (
+                    <div
+                      key={name}
+                      onClick={() => handleLoad(name)}
+                      className="flex items-center justify-between px-3 py-1.5 hover:bg-neutral-700 cursor-pointer transition-colors"
+                    >
+                      <span className="truncate">{name}</span>
+                      <button
+                        onClick={(e) => handleDelete(name, e)}
+                        className="ml-2 text-red-400 hover:text-red-300 text-xs shrink-0"
+                        title="Löschen"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </>
+              )}
+
+              {/* Examples */}
+              {EXAMPLES.length > 0 && (
+                <>
+                  <div className="px-3 py-1.5 text-neutral-500 text-xs font-semibold uppercase tracking-wide border-t border-neutral-700">
+                    Beispiele
+                  </div>
+                  {EXAMPLES.map((ex) => (
+                    <button
+                      key={ex.file}
+                      onClick={() => handleLoadExample(ex.file)}
+                      className="w-full text-left px-3 py-1.5 hover:bg-neutral-700 transition-colors"
+                    >
+                      📄 {ex.name}
+                    </button>
+                  ))}
+                </>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Hidden file input for upload */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".lua,.txt"
+          className="hidden"
+          onChange={handleFileChange}
+        />
 
         <button
           onClick={handleRun}
