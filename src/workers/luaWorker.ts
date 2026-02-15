@@ -207,15 +207,7 @@ function tick() {
     }
 
     if (yieldVal === "__stdin") {
-      // Lua wants input
-      if (stdinQueue.length > 0) {
-        // We already have queued input — feed it and continue
-        const val = stdinQueue.shift()!;
-        Module.stdinBuffer.push(val);
-        scheduleTick();
-        return;
-      }
-      // Wait for input from UI
+      // Lua wants input – wait for STDIN_SUBMIT from UI
       waitingInput = true;
       post({ type: "STATUS", state: "waiting_input" });
       return;
@@ -297,13 +289,17 @@ self.onmessage = async (e: MessageEvent<MsgToWorker>) => {
     }
 
     case "STDIN_SUBMIT": {
-      stdinQueue.push(msg.value);
-      if (Module) Module.stdinBuffer.push(msg.value);
-
       if (waitingInput && running) {
+        // Coroutine is paused at yield("__stdin"), waiting for _spop().
+        // Push directly to stdinBuffer so the Lua _spop() finds it on resume.
+        if (Module) Module.stdinBuffer.push(msg.value);
         waitingInput = false;
         post({ type: "STATUS", state: "running" });
         scheduleTick();
+      } else {
+        // Not waiting yet – queue for later. When io.read() runs,
+        // _spop() reads from stdinBuffer, so put it there.
+        if (Module) Module.stdinBuffer.push(msg.value);
       }
       break;
     }
