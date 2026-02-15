@@ -448,7 +448,9 @@ export default function HomePage() {
       return;
     }
     if (id === "run:start") {
-      handleRun();
+      setConsoleLines([]);
+      const currentCode = editorRef.current?.getModel()?.getValue() ?? "";
+      workerRef.current?.run(currentCode);
       setPaletteOpen(false);
       return;
     }
