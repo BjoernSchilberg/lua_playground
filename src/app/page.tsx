@@ -205,6 +205,35 @@ export default function HomePage() {
         },
       });
     });
+
+    /* Register actions in Monaco's built-in Command Palette (F1) */
+    editorInstance.addAction({
+      id: "lua-playground.format-document",
+      label: "Format Document",
+      keybindings: [monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.KeyF],
+      run: (ed) => {
+        const action = ed.getAction("editor.action.formatDocument");
+        if (action) {
+          action.run();
+        } else if (luaFmtRef.current) {
+          try {
+            const model = ed.getModel();
+            if (model) {
+              const formatted = luaFmtRef.current(model.getValue());
+              model.pushEditOperations([], [{ range: model.getFullModelRange(), text: formatted }], () => null);
+            }
+          } catch { /* syntax error — ignore */ }
+        }
+      },
+    });
+
+    editorInstance.addAction({
+      id: "lua-playground.toggle-vim",
+      label: "Toggle Vim Mode",
+      run: () => {
+        setVimEnabled((v) => !v);
+      },
+    });
   }, []);
 
   /* ---- Load theme list on mount ---- */
