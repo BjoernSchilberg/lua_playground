@@ -192,6 +192,13 @@ function tick() {
       return;
     }
 
+    if (yieldVal && yieldVal.startsWith("__sleep:")) {
+      // Sleep request – resume after the requested delay
+      const ms = parseInt(yieldVal.slice(8), 10) || 0;
+      schedulerTimer = setTimeout(tick, ms);
+      return;
+    }
+
     if (yieldVal === "__stdin") {
       // Lua wants input
       if (stdinQueue.length > 0) {
