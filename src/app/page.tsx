@@ -1,9 +1,12 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { LuaWorkerClient } from "@/lib/workerClient";
 import type { MsgFromWorker, WorkerState } from "@/lib/protocol";
+import { loadThemeList, fetchThemeData, isBuiltin, type ThemeEntry } from "@/lib/monacoThemes";
+import CommandPalette, { type PaletteItem } from "@/components/CommandPalette";
+import type { Monaco } from "@monaco-editor/react";
 
 // Dynamically import Monaco to avoid SSR issues
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
@@ -85,6 +88,13 @@ export default function HomePage() {
   const [saveName, setSaveName] = useState("");
   const [currentFileName, setCurrentFileName] = useState("");
 
+  /* ---- Theme / Command Palette state ---- */
+  const [editorTheme, setEditorTheme] = useState("vs-dark");
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [themeList, setThemeList] = useState<ThemeEntry[]>([]);
+  const monacoRef = useRef<Monaco | null>(null);
+  const definedThemes = useRef(new Set<string>());
+
   /* ---- Resizable panel state ---- */
   const [editorWidthPct, setEditorWidthPct] = useState(70); // % of main width for editor
   const [consolePct, setConsolePct] = useState(30); // % of available height for console
@@ -96,6 +106,64 @@ export default function HomePage() {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
+
+  /* ---- Register Monaco instance when editor loads ---- */
+  const handleEditorMount = useCallback((_editor: unknown, monaco: Monaco) => {
+    monacoRef.current = monaco;
+  }, []);
+
+  /* ---- Load theme list on mount ---- */
+  useEffect(() => {
+    loadThemeList().then(setThemeList);
+  }, []);
+
+  /* ---- Command Palette items ---- */
+  const paletteItems: PaletteItem[] = useMemo(
+    () =>
+      themeList.map((t) => ({
+        id: `theme:${t.id}`,
+        label: t.label,
+        category: "Theme",
+      })),
+    [themeList]
+  );
+
+  const handlePaletteSelect = useCallback(async (id: string) => {
+    if (!id.startsWith("theme:")) return;
+    const themeId = id.slice(6);
+
+    if (isBuiltin(themeId)) {
+      setEditorTheme(themeId);
+      return;
+    }
+
+    const monaco = monacoRef.current;
+    if (!monaco) return;
+
+    // Define the theme if not yet registered
+    if (!definedThemes.current.has(themeId)) {
+      const entry = themeList.find((t) => t.id === themeId);
+      if (!entry) return;
+      const data = await fetchThemeData(entry);
+      if (!data) return;
+      monaco.editor.defineTheme(themeId, data);
+      definedThemes.current.add(themeId);
+    }
+
+    setEditorTheme(themeId);
+  }, [themeList]);
+
+  /* ---- Keyboard shortcut: Ctrl/Cmd+Shift+P ---- */
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "P") {
+        e.preventDefault();
+        setPaletteOpen((v) => !v);
+      }
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, []);
 
   // Auto-scroll console
   useEffect(() => {
@@ -482,6 +550,14 @@ export default function HomePage() {
         >
           {STATUS_LABELS[status]}
         </span>
+
+        <button
+          onClick={() => setPaletteOpen(true)}
+          className="px-3 py-1 rounded bg-neutral-700 hover:bg-neutral-600 text-sm font-semibold transition-colors"
+          title="Command Palette (Ctrl+Shift+P)"
+        >
+          ⌘ Palette
+        </button>
       </header>
 
       {/* ---- Content area (main + console, split vertically) ---- */}
@@ -493,9 +569,10 @@ export default function HomePage() {
           <div className="min-w-0 overflow-hidden" style={{ width: `${editorWidthPct}%` }}>
             <MonacoEditor
               language="lua"
-              theme="vs-dark"
+              theme={editorTheme}
               value={code}
               onChange={(v) => setCode(v ?? "")}
+              onMount={handleEditorMount}
               options={{
                 fontSize: 20,
                 minimap: { enabled: false },
@@ -570,6 +647,15 @@ export default function HomePage() {
         </div>
 
       </div>
+
+      {/* ---- Command Palette ---- */}
+      <CommandPalette
+        open={paletteOpen}
+        onClose={() => setPaletteOpen(false)}
+        items={paletteItems}
+        onSelect={handlePaletteSelect}
+        placeholder="Select theme…"
+      />
     </div>
   );
 }
