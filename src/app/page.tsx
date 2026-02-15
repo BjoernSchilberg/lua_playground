@@ -83,6 +83,7 @@ export default function HomePage() {
   const [savedNames, setSavedNames] = useState<string[]>([]);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [saveName, setSaveName] = useState("");
+  const [currentFileName, setCurrentFileName] = useState("");
 
   const workerRef = useRef<LuaWorkerClient | null>(null);
   const consoleEndRef = useRef<HTMLDivElement | null>(null);
@@ -192,6 +193,7 @@ export default function HomePage() {
     const trimmed = saveName.trim();
     if (!trimmed) return;
     saveScript(trimmed, code);
+    setCurrentFileName(trimmed);
     setSavedNames(Object.keys(getSavedScripts()));
     setSaveDialogOpen(false);
     setSaveName("");
@@ -202,6 +204,7 @@ export default function HomePage() {
     const scripts = getSavedScripts();
     if (scripts[name]) {
       setCode(scripts[name]);
+      setCurrentFileName(name);
     }
     setShowFileMenu(false);
   };
@@ -218,7 +221,8 @@ export default function HomePage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "script.lua";
+    const baseName = currentFileName || "script";
+    a.download = baseName.endsWith(".lua") ? baseName : `${baseName}.lua`;
     a.click();
     URL.revokeObjectURL(url);
     setShowFileMenu(false);
@@ -236,6 +240,7 @@ export default function HomePage() {
     reader.onload = () => {
       if (typeof reader.result === "string") {
         setCode(reader.result);
+        setCurrentFileName(file.name.replace(/\.lua$/, ""));
       }
     };
     reader.readAsText(file);
