@@ -234,6 +234,27 @@ export default function HomePage() {
         setVimEnabled((v) => !v);
       },
     });
+
+    editorInstance.addAction({
+      id: "lua-playground.fontZoomIn",
+      label: "Font Zoom In",
+      keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Equal],
+      run: (ed) => ed.getAction("editor.action.fontZoomIn")?.run(),
+    });
+
+    editorInstance.addAction({
+      id: "lua-playground.fontZoomOut",
+      label: "Font Zoom Out",
+      keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Minus],
+      run: (ed) => ed.getAction("editor.action.fontZoomOut")?.run(),
+    });
+
+    editorInstance.addAction({
+      id: "lua-playground.fontZoomReset",
+      label: "Font Zoom Reset",
+      keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Digit0],
+      run: (ed) => ed.getAction("editor.action.fontZoomReset")?.run(),
+    });
   }, []);
 
   /* ---- Load theme list on mount ---- */
@@ -284,6 +305,21 @@ export default function HomePage() {
         label: vimEnabled ? "Disable Vim Mode" : "Enable Vim Mode",
         category: "Editor",
       },
+      {
+        id: "font:zoomIn",
+        label: "Font Zoom In",
+        category: "Editor",
+      },
+      {
+        id: "font:zoomOut",
+        label: "Font Zoom Out",
+        category: "Editor",
+      },
+      {
+        id: "font:zoomReset",
+        label: "Font Zoom Reset",
+        category: "Editor",
+      },
       ...themeList.map((t) => ({
         id: `theme:${t.id}`,
         label: t.label,
@@ -318,6 +354,16 @@ export default function HomePage() {
     }
     if (id === "vim:toggle") {
       setVimEnabled((v) => !v);
+      setPaletteOpen(false);
+      return;
+    }
+    if (id.startsWith("font:zoom")) {
+      const ed = editorRef.current;
+      if (ed) {
+        if (id === "font:zoomIn") ed.getAction("editor.action.fontZoomIn")?.run();
+        if (id === "font:zoomOut") ed.getAction("editor.action.fontZoomOut")?.run();
+        if (id === "font:zoomReset") ed.getAction("editor.action.fontZoomReset")?.run();
+      }
       setPaletteOpen(false);
       return;
     }
@@ -833,7 +879,8 @@ export default function HomePage() {
                   wordWrap: "on",
                   automaticLayout: true,
                   tabSize: 2,
-                  cursorStyle: "block"
+                  cursorStyle: "block",
+                  mouseWheelZoom: true,
                 }}
               />
             </div>
