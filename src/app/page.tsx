@@ -147,6 +147,9 @@ export default function HomePage() {
   const vimModeRef = useRef<any>(null);
   const vimStatusRef = useRef<HTMLDivElement | null>(null);
 
+  /* ---- Line numbers state ---- */
+  const [lineNumbers, setLineNumbers] = useState(true);
+
   // Restore vim preference after hydration
   useEffect(() => {
     if (localStorage.getItem("lua_playground_vim") === "true") {
@@ -294,6 +297,26 @@ export default function HomePage() {
   const paletteItems: PaletteItem[] = useMemo(
     () => [
       {
+        id: "file:new",
+        label: "Neu",
+        category: "File",
+      },
+      {
+        id: "file:save",
+        label: "Speichern…",
+        category: "File",
+      },
+      {
+        id: "file:download",
+        label: "Download .lua",
+        category: "File",
+      },
+      {
+        id: "file:open",
+        label: "Datei öffnen…",
+        category: "File",
+      },
+      {
         id: "format:document",
         label: "Format Document",
         category: "Editor",
@@ -318,18 +341,53 @@ export default function HomePage() {
         label: "Font Zoom Reset",
         category: "Editor",
       },
+      {
+        id: "editor:lineNumbers",
+        label: lineNumbers ? "Hide Line Numbers" : "Show Line Numbers",
+        category: "Editor",
+      },
       ...themeList.map((t) => ({
         id: `theme:${t.id}`,
         label: t.label,
         category: "Theme",
       })),
     ],
-    [themeList, vimEnabled]
+    [themeList, vimEnabled, lineNumbers]
   );
 
   const themeBeforePalette = useRef("vs-dark");
 
   const handlePaletteSelect = useCallback(async (id: string) => {
+    if (id === "file:new") {
+      setCode("");
+      setCurrentFileName("");
+      setPaletteOpen(false);
+      return;
+    }
+    if (id === "file:save") {
+      setPaletteOpen(false);
+      setShowFileMenu(true);
+      setSaveDialogOpen(true);
+      return;
+    }
+    if (id === "file:download") {
+      const currentCode = editorRef.current?.getModel()?.getValue() ?? "";
+      const blob = new Blob([currentCode], { type: "text/x-lua" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const baseName = currentFileName || "script";
+      a.download = baseName.endsWith(".lua") ? baseName : `${baseName}.lua`;
+      a.click();
+      URL.revokeObjectURL(url);
+      setPaletteOpen(false);
+      return;
+    }
+    if (id === "file:open") {
+      handleUploadClick();
+      setPaletteOpen(false);
+      return;
+    }
     if (id === "format:document") {
       const ed = editorRef.current;
       if (ed) {
@@ -365,6 +423,15 @@ export default function HomePage() {
       setPaletteOpen(false);
       return;
     }
+    if (id === "editor:lineNumbers") {
+      setLineNumbers((v) => {
+        const next = !v;
+        editorRef.current?.updateOptions({ lineNumbers: next ? "on" : "off" });
+        return next;
+      });
+      setPaletteOpen(false);
+      return;
+    }
     if (!id.startsWith("theme:")) return;
     const themeId = id.slice(6);
 
@@ -393,7 +460,7 @@ export default function HomePage() {
     applyThemeColors(themeId, data);
     themeBeforePalette.current = themeId;
     setPaletteOpen(false);
-  }, [themeList, applyThemeColors]);
+  }, [themeList, applyThemeColors, currentFileName]);
 
   /** Apply theme live as the user navigates the palette */
   const handlePaletteHighlight = useCallback(async (id: string) => {
