@@ -140,14 +140,21 @@ export default function HomePage() {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const definedThemes = useRef(new Set<string>());
 
+  /* ---- Lua formatter ---- */
+  const luaFmtRef = useRef<((code: string) => string) | null>(null);
+
   /* ---- Vim mode state ---- */
-  const [vimEnabled, setVimEnabled] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return localStorage.getItem("lua_playground_vim") === "true";
-  });
+  const [vimEnabled, setVimEnabled] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const vimModeRef = useRef<any>(null);
   const vimStatusRef = useRef<HTMLDivElement | null>(null);
+
+  // Restore vim preference after hydration
+  useEffect(() => {
+    if (localStorage.getItem("lua_playground_vim") === "true") {
+      setVimEnabled(true);
+    }
+  }, []);
 
   /* ---- Adaptive UI colours derived from editor theme ---- */
   const [themeBg, setThemeBg] = useState("#1e1e1e");
@@ -180,6 +187,24 @@ export default function HomePage() {
   const handleEditorMount = useCallback((editorInstance: editor.IStandaloneCodeEditor, monaco: Monaco) => {
     monacoRef.current = monaco;
     editorRef.current = editorInstance;
+
+    /* Register Lua formatting provider (lazy-load WASM formatter) */
+    import("@wasm-fmt/lua_fmt/web").then(async (mod) => {
+      await mod.default("/lua_fmt_bg.wasm");
+      const { format } = mod;
+      luaFmtRef.current = format;
+      monaco.languages.registerDocumentFormattingEditProvider("lua", {
+        provideDocumentFormattingEdits(model: editor.ITextModel) {
+          try {
+            const formatted = format(model.getValue());
+            return [{ range: model.getFullModelRange(), text: formatted }];
+          } catch {
+            // Syntax error in Lua code — skip formatting
+            return [];
+          }
+        },
+      });
+    });
   }, []);
 
   /* ---- Load theme list on mount ---- */
@@ -221,6 +246,11 @@ export default function HomePage() {
   const paletteItems: PaletteItem[] = useMemo(
     () => [
       {
+        id: "format:document",
+        label: "Format Document",
+        category: "Editor",
+      },
+      {
         id: "vim:toggle",
         label: vimEnabled ? "Disable Vim Mode" : "Enable Vim Mode",
         category: "Editor",
@@ -237,6 +267,26 @@ export default function HomePage() {
   const themeBeforePalette = useRef("vs-dark");
 
   const handlePaletteSelect = useCallback(async (id: string) => {
+    if (id === "format:document") {
+      const ed = editorRef.current;
+      if (ed) {
+        const action = ed.getAction("editor.action.formatDocument");
+        if (action) {
+          await action.run();
+        } else if (luaFmtRef.current) {
+          // Fallback: apply formatting directly
+          try {
+            const model = ed.getModel();
+            if (model) {
+              const formatted = luaFmtRef.current(model.getValue());
+              model.pushEditOperations([], [{ range: model.getFullModelRange(), text: formatted }], () => null);
+            }
+          } catch { /* syntax error — ignore */ }
+        }
+      }
+      setPaletteOpen(false);
+      return;
+    }
     if (id === "vim:toggle") {
       setVimEnabled((v) => !v);
       setPaletteOpen(false);
