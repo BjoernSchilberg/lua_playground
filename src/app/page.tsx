@@ -7,6 +7,7 @@ import type { MsgFromWorker, WorkerState } from "@/lib/protocol";
 import { loadThemeList, fetchThemeData, isBuiltin, getThemeColors, type ThemeEntry } from "@/lib/monacoThemes";
 import CommandPalette, { type PaletteItem } from "@/components/CommandPalette";
 import type { Monaco } from "@monaco-editor/react";
+import type { editor } from "monaco-editor";
 
 // Dynamically import Monaco to avoid SSR issues
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
@@ -136,7 +137,17 @@ export default function HomePage() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [themeList, setThemeList] = useState<ThemeEntry[]>([]);
   const monacoRef = useRef<Monaco | null>(null);
+  const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const definedThemes = useRef(new Set<string>());
+
+  /* ---- Vim mode state ---- */
+  const [vimEnabled, setVimEnabled] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("lua_playground_vim") === "true";
+  });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const vimModeRef = useRef<any>(null);
+  const vimStatusRef = useRef<HTMLDivElement | null>(null);
 
   /* ---- Adaptive UI colours derived from editor theme ---- */
   const [themeBg, setThemeBg] = useState("#1e1e1e");
@@ -166,8 +177,9 @@ export default function HomePage() {
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   /* ---- Register Monaco instance when editor loads ---- */
-  const handleEditorMount = useCallback((_editor: unknown, monaco: Monaco) => {
+  const handleEditorMount = useCallback((editorInstance: editor.IStandaloneCodeEditor, monaco: Monaco) => {
     monacoRef.current = monaco;
+    editorRef.current = editorInstance;
   }, []);
 
   /* ---- Load theme list on mount ---- */
@@ -175,20 +187,61 @@ export default function HomePage() {
     loadThemeList().then(setThemeList);
   }, []);
 
+  /* ---- Vim mode toggle effect ---- */
+  useEffect(() => {
+    const ed = editorRef.current;
+    if (!ed) return;
+    localStorage.setItem("lua_playground_vim", String(vimEnabled));
+
+    if (vimEnabled) {
+      let disposed = false;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let instance: any = null;
+      // Dynamic import to avoid SSR window access
+      import("monaco-vim").then(({ initVimMode }) => {
+        if (disposed) return;
+        if (vimStatusRef.current && editorRef.current) {
+          instance = initVimMode(editorRef.current, vimStatusRef.current);
+          vimModeRef.current = instance;
+        }
+      });
+      return () => {
+        disposed = true;
+        instance?.dispose();
+        vimModeRef.current?.dispose();
+        vimModeRef.current = null;
+      };
+    } else {
+      vimModeRef.current?.dispose();
+      vimModeRef.current = null;
+    }
+  }, [vimEnabled]);
+
   /* ---- Command Palette items ---- */
   const paletteItems: PaletteItem[] = useMemo(
-    () =>
-      themeList.map((t) => ({
+    () => [
+      {
+        id: "vim:toggle",
+        label: vimEnabled ? "Disable Vim Mode" : "Enable Vim Mode",
+        category: "Editor",
+      },
+      ...themeList.map((t) => ({
         id: `theme:${t.id}`,
         label: t.label,
         category: "Theme",
       })),
-    [themeList]
+    ],
+    [themeList, vimEnabled]
   );
 
   const themeBeforePalette = useRef("vs-dark");
 
   const handlePaletteSelect = useCallback(async (id: string) => {
+    if (id === "vim:toggle") {
+      setVimEnabled((v) => !v);
+      setPaletteOpen(false);
+      return;
+    }
     if (!id.startsWith("theme:")) return;
     const themeId = id.slice(6);
 
@@ -686,23 +739,37 @@ export default function HomePage() {
         {/* ---- Main: Editor + World placeholder (split horizontally) ---- */}
         <main ref={mainRef} className="flex min-h-0" style={{ flex: `${100 - consolePct} 0 0%` }}>
           {/* Editor panel */}
-          <div className="min-w-0 overflow-hidden" style={{ width: `${editorWidthPct}%` }}>
-            <MonacoEditor
-              language="lua"
-              theme={editorTheme}
-              value={code}
-              onChange={(v) => setCode(v ?? "")}
-              onMount={handleEditorMount}
-              options={{
-                fontSize: 20,
-                minimap: { enabled: false },
-                scrollBeyondLastLine: false,
-                wordWrap: "on",
-                automaticLayout: true,
-                tabSize: 2,
-                cursorStyle: "block"
-              }}
-            />
+          <div className="min-w-0 overflow-hidden flex flex-col" style={{ width: `${editorWidthPct}%` }}>
+            <div className="flex-1 min-h-0">
+              <MonacoEditor
+                language="lua"
+                theme={editorTheme}
+                value={code}
+                onChange={(v) => setCode(v ?? "")}
+                onMount={handleEditorMount}
+                options={{
+                  fontSize: 20,
+                  minimap: { enabled: false },
+                  scrollBeyondLastLine: false,
+                  wordWrap: "on",
+                  automaticLayout: true,
+                  tabSize: 2,
+                  cursorStyle: "block"
+                }}
+              />
+            </div>
+            {/* Vim statusbar */}
+            {vimEnabled && (
+              <div
+                ref={vimStatusRef}
+                className="px-3 py-0.5 text-xs font-mono select-none shrink-0"
+                style={{
+                  backgroundColor: ui.surface,
+                  color: ui.fg,
+                  borderTop: `1px solid ${ui.border}`,
+                }}
+              />
+            )}
           </div>
 
           {/* Vertical drag handle */}
@@ -779,7 +846,7 @@ export default function HomePage() {
         items={paletteItems}
         onSelect={handlePaletteSelect}
         onHighlight={handlePaletteHighlight}
-        placeholder="Select theme…"
+        placeholder="Search commands…"
       />
     </div>
   );

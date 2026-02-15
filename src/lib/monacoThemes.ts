@@ -111,10 +111,10 @@ export function getThemeColors(
     (() => {
       // fallback: first rule with a "background" field
       const rule = d.rules?.find(
-        (r) => "background" in r && (r as Record<string, unknown>).background
+        (r) => "background" in r && (r as unknown as Record<string, unknown>).background
       );
       const raw = rule
-        ? ((rule as Record<string, unknown>).background as string)
+        ? ((rule as unknown as Record<string, unknown>).background as string)
         : undefined;
       return raw ? (raw.startsWith("#") ? raw : `#${raw}`) : "#1e1e1e";
     })();
