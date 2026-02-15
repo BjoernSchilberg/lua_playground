@@ -124,7 +124,7 @@ export default function HomePage() {
     workerRef.current?.submitStdin(inputValue);
     setConsoleLines((prev) => [
       ...prev,
-      { text: `> ${inputValue}` },
+      { text: `> ${inputValue}\n` },
     ]);
     setInputValue("");
   };
