@@ -7,6 +7,8 @@ export interface PaletteItem {
   label: string;
   /** Optional category shown as grey prefix */
   category?: string;
+  /** Optional keyboard shortcut hint shown right-aligned */
+  shortcut?: string;
 }
 
 export interface PaletteColors {
@@ -163,7 +165,18 @@ export default function CommandPalette({
                     {item.category}:
                   </span>
                 )}
-                <span>{item.label}</span>
+                <span className="flex-1">{item.label}</span>
+                {item.shortcut && (
+                  <kbd
+                    className="ml-auto text-[11px] rounded px-1.5 py-0.5 font-sans"
+                    style={{
+                      backgroundColor: isActive ? 'rgba(255,255,255,0.15)' : `${colors.border}66`,
+                      color: isActive ? colors.activeFg : colors.muted,
+                    }}
+                  >
+                    {item.shortcut}
+                  </kbd>
+                )}
               </div>
             );
           })}

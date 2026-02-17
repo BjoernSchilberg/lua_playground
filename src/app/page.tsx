@@ -228,6 +228,17 @@ export default function HomePage() {
     });
 
     editorInstance.addAction({
+      id: "lua-playground.run",
+      label: "Run Lua Program",
+      keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter],
+      run: () => {
+        setConsoleLines([]);
+        const currentCode = editorInstance.getModel()?.getValue() ?? "";
+        workerRef.current?.run(currentCode);
+      },
+    });
+
+    editorInstance.addAction({
       id: "lua-playground.toggle-vim",
       label: "Toggle Vim Mode",
       run: () => {
@@ -299,6 +310,7 @@ export default function HomePage() {
         id: "run:start",
         label: "Run",
         category: "Lua",
+        shortcut: "Ctrl+Enter",
       },
       {
         id: "run:stop",
@@ -553,6 +565,13 @@ export default function HomePage() {
           }
           return !prev;
         });
+      }
+      // Ctrl/Cmd+Enter → Run (global fallback when editor not focused)
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === "Enter") {
+        e.preventDefault();
+        setConsoleLines([]);
+        const currentCode = editorRef.current?.getModel()?.getValue() ?? "";
+        workerRef.current?.run(currentCode);
       }
     };
     document.addEventListener("keydown", handler);
@@ -935,6 +954,7 @@ export default function HomePage() {
           onClick={handleRun}
           disabled={!ready || isRunning}
           className="px-3 py-1 rounded bg-green-700 hover:bg-green-600 disabled:opacity-40 disabled:cursor-not-allowed text-sm font-semibold transition-colors"
+          title="Run (Ctrl+Enter)"
         >
           ▶ Run
         </button>
