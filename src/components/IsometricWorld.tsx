@@ -35,6 +35,29 @@ const SVG_W = 160;
 const SVG_H = 320;
 
 /* ------------------------------------------------------------------ */
+/*  Compass rose geometry (derived from arrow_*.svg files)             */
+/*  Arrow paths relative to origin; ellipse rx=56 ry=28               */
+/* ------------------------------------------------------------------ */
+
+/** Arrow triangle paths for 4 screen directions: ↗ ↘ ↙ ↖ */
+const COMPASS_ARROWS = [
+  "M 32 -16 L -48 16 L -32 24 Z",   // upper-right  (screen ↗)
+  "M 32 16 L -48 -16 L -32 -24 Z",  // lower-right  (screen ↘)
+  "M -32 16 L 48 -16 L 32 -24 Z",   // lower-left   (screen ↙)
+  "M -32 -16 L 48 16 L 32 24 Z",    // upper-left   (screen ↖)
+];
+
+/** Label positions just outside the ellipse tips */
+const COMPASS_LABEL_POS = [
+  { x: 58, y: -22, anchor: "start" as const },   // ↗
+  { x: 58, y: 30, anchor: "start" as const },    // ↘
+  { x: -58, y: 30, anchor: "end" as const },     // ↙
+  { x: -58, y: -22, anchor: "end" as const },    // ↖
+];
+
+const COMPASS_DIRS = ["N", "E", "S", "W"];
+
+/* ------------------------------------------------------------------ */
 /*  Isometric projection with 90° step rotation                       */
 /* ------------------------------------------------------------------ */
 
@@ -336,7 +359,7 @@ export default function IsometricWorld({
   return (
     <div
       ref={containerRef}
-      className="flex-1 min-w-0 h-full overflow-hidden"
+      className="flex-1 min-w-0 h-full overflow-hidden relative"
       style={{ backgroundColor: bgColor, cursor: "grab" }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
@@ -354,6 +377,59 @@ export default function IsometricWorld({
         }}
       >
         {elements}
+      </svg>
+
+      {/* Compass rose — bottom-right corner */}
+      <svg
+        width="130"
+        height="80"
+        viewBox="-80 -38 160 76"
+        style={{
+          position: "absolute",
+          right: 10,
+          bottom: 10,
+          pointerEvents: "none",
+          filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.4))",
+        }}
+      >
+        {/* semi-transparent backdrop */}
+        <rect
+          x="-78" y="-36" width="156" height="72" rx="10" ry="10"
+          fill="rgba(0,0,0,0.45)"
+        />
+
+        {/* isometric ellipse */}
+        <ellipse cx="0" cy="0" rx="50" ry="25"
+          fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1.5"
+        />
+
+        {/* 4 arrow triangles + labels */}
+        {COMPASS_ARROWS.map((d, i) => {
+          const label = COMPASS_DIRS[((i - viewStep) % 4 + 4) % 4];
+          const isNorth = label === "N";
+          const lp = COMPASS_LABEL_POS[i];
+          return (
+            <g key={i}>
+              <path
+                d={d}
+                fill={isNorth ? "#e74c3c" : "rgba(255,255,255,0.5)"}
+                stroke={isNorth ? "#c0392b" : "rgba(255,255,255,0.15)"}
+                strokeWidth="1"
+              />
+              <text
+                x={lp.x} y={lp.y}
+                textAnchor={lp.anchor}
+                dominantBaseline="central"
+                fill={isNorth ? "#e74c3c" : "rgba(255,255,255,0.7)"}
+                fontWeight={isNorth ? "bold" : "normal"}
+                fontSize="16"
+                fontFamily="system-ui, sans-serif"
+              >
+                {label}
+              </text>
+            </g>
+          );
+        })}
       </svg>
     </div>
   );
