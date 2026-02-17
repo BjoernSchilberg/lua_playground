@@ -1060,7 +1060,13 @@ export default function HomePage() {
           <div className="px-3 py-1 text-xs select-none transition-colors duration-200" style={{ backgroundColor: ui.surface, color: ui.muted, borderBottom: `1px solid ${ui.border}` }}>
             Console
           </div>
-          <pre className="flex-1 overflow-y-auto px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap">
+          <pre
+            className="themed-scrollbar flex-1 px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap"
+            style={{
+              "--scrollbar-thumb": ui.handle,
+              "--scrollbar-thumb-hover": ui.border,
+            } as React.CSSProperties}
+          >
             {consoleLines.map((line, i) => (
               <span
                 key={i}
