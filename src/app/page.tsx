@@ -257,8 +257,25 @@ export default function HomePage() {
       label: "Run Lua Program",
       keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter],
       run: () => {
+        /* Format before run */
+        let currentCode = editorInstance.getModel()?.getValue() ?? "";
+        if (luaFmtRef.current) {
+          try {
+            const formatted = luaFmtRef.current(currentCode);
+            if (formatted !== currentCode) {
+              const model = editorInstance.getModel();
+              if (model) {
+                model.pushEditOperations(
+                  [],
+                  [{ range: model.getFullModelRange(), text: formatted }],
+                  () => null,
+                );
+              }
+              currentCode = formatted;
+            }
+          } catch { /* syntax error — run unformatted */ }
+        }
         setConsoleLines([]);
-        const currentCode = editorInstance.getModel()?.getValue() ?? "";
         workerRef.current?.run(currentCode);
       },
     });
@@ -835,10 +852,35 @@ export default function HomePage() {
 
   /* ---- Actions ---- */
 
+  const formatEditorCode = (): string => {
+    const fmt = luaFmtRef.current;
+    if (fmt) {
+      try {
+        const formatted = fmt(code);
+        if (formatted !== code) {
+          const model = editorRef.current?.getModel();
+          if (model) {
+            model.pushEditOperations(
+              [],
+              [{ range: model.getFullModelRange(), text: formatted }],
+              () => null,
+            );
+          }
+          setCode(formatted);
+          return formatted;
+        }
+      } catch {
+        /* syntax error — run unformatted */
+      }
+    }
+    return code;
+  };
+
   const handleRun = () => {
+    const source = formatEditorCode();
     setPausedLine(null);
     setConsoleLines([]);
-    workerRef.current?.run(code);
+    workerRef.current?.run(source);
   };
 
   const handleStep = () => {
@@ -847,9 +889,10 @@ export default function HomePage() {
       workerRef.current?.stepNext();
     } else {
       // Fresh start in step mode
+      const source = formatEditorCode();
       setPausedLine(null);
       setConsoleLines([]);
-      workerRef.current?.step(code);
+      workerRef.current?.step(source);
     }
   };
 
