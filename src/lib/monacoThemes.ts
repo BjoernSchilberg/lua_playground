@@ -6,6 +6,7 @@
  */
 
 import type { editor } from "monaco-editor";
+import basePath from "./basePath";
 
 export interface ThemeEntry {
   id: string;
@@ -41,7 +42,7 @@ export async function loadThemeList(): Promise<ThemeEntry[]> {
   if (allThemes) return allThemes;
 
   try {
-    const res = await fetch("/themes/themelist.json");
+    const res = await fetch(`${basePath}/themes/themelist.json`);
     const map: Record<string, string> = await res.json();
 
     const custom: ThemeEntry[] = Object.entries(map).map(([id, label]) => ({
@@ -73,7 +74,7 @@ export async function fetchThemeData(
   if (cached) return cached;
 
   try {
-    const res = await fetch(`/themes/${encodeURIComponent(theme.file)}`);
+    const res = await fetch(`${basePath}/themes/${encodeURIComponent(theme.file)}`);
     const data: editor.IStandaloneThemeData = await res.json();
     themeCache.set(theme.id, data);
     return data;

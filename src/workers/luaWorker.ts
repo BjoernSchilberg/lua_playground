@@ -11,6 +11,9 @@
 
 import type { MsgToWorker, MsgFromWorker } from "../lib/protocol";
 
+/** Base path for loading assets (set at build time for GitHub Pages) */
+const LUA_BASE = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+
 /* ------------------------------------------------------------------ */
 /*  Types for the WASM module (cwrap results)                         */
 /* ------------------------------------------------------------------ */
@@ -75,13 +78,13 @@ async function ensureInit(): Promise<void> {
     // Dynamic import with webpackIgnore so Webpack doesn't try to bundle the
     // Emscripten-generated JS glue.
     const factory = (
-      // @ts-expect-error – runtime dynamic import from public/, no TS module resolution
-      await import(/* webpackIgnore: true */ "/lua/lua.js")
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await import(/* webpackIgnore: true */ `${LUA_BASE}/lua/lua.js`) as any
     ).default;
 
     Module = await factory({
       locateFile: (path: string) => {
-        if (path.endsWith(".wasm")) return "/lua/lua.wasm";
+        if (path.endsWith(".wasm")) return `${LUA_BASE}/lua/lua.wasm`;
         return path;
       },
     });

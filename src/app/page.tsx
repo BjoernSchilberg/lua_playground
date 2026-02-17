@@ -6,6 +6,7 @@ import { LuaWorkerClient } from "@/lib/workerClient";
 import type { MsgFromWorker, WorkerState } from "@/lib/protocol";
 import { loadThemeList, fetchThemeData, isBuiltin, getThemeColors, type ThemeEntry } from "@/lib/monacoThemes";
 import CommandPalette, { type PaletteItem } from "@/components/CommandPalette";
+import basePath from "@/lib/basePath";
 import type { Monaco } from "@monaco-editor/react";
 import type { editor } from "monaco-editor";
 
@@ -191,7 +192,7 @@ export default function HomePage() {
 
     /* Register Lua formatting provider (lazy-load WASM formatter) */
     import("@wasm-fmt/lua_fmt/web").then(async (mod) => {
-      await mod.default("/lua_fmt_bg.wasm");
+      await mod.default(`${basePath}/lua_fmt_bg.wasm`);
       const { format } = mod;
       luaFmtRef.current = format;
       monaco.languages.registerDocumentFormattingEditProvider("lua", {
