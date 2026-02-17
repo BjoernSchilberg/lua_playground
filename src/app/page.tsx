@@ -186,6 +186,7 @@ export default function HomePage() {
   const handleEditorMount = useCallback((editorInstance: editor.IStandaloneCodeEditor, monaco: Monaco) => {
     monacoRef.current = monaco;
     editorRef.current = editorInstance;
+    editorInstance.focus();
 
     /* Register Lua formatting provider (lazy-load WASM formatter) */
     import("@wasm-fmt/lua_fmt/web").then(async (mod) => {
@@ -276,6 +277,7 @@ export default function HomePage() {
         if (vimStatusRef.current && editorRef.current) {
           instance = initVimMode(editorRef.current, vimStatusRef.current);
           vimModeRef.current = instance;
+          editorRef.current.focus();
         }
       });
       return () => {
