@@ -155,13 +155,6 @@ export default function HomePage() {
   /* ---- World panel state ---- */
   const [showWorld, setShowWorld] = useState(false);
 
-  // Restore vim preference after hydration
-  useEffect(() => {
-    if (localStorage.getItem("lua_playground_vim") === "true") {
-      setVimEnabled(true);
-    }
-  }, []);
-
   /* ---- Adaptive UI colours derived from editor theme ---- */
   const [themeBg, setThemeBg] = useState("#1e1e1e");
   const [themeFg, setThemeFg] = useState("#d4d4d4");
@@ -272,7 +265,6 @@ export default function HomePage() {
   useEffect(() => {
     const ed = editorRef.current;
     if (!ed) return;
-    localStorage.setItem("lua_playground_vim", String(vimEnabled));
 
     if (vimEnabled) {
       let disposed = false;
