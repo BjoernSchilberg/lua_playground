@@ -21,6 +21,9 @@ const TILE_FILES: Record<string, string> = {
   o: "tomato.svg",
 };
 
+/** Tiles that are objects placed ON grass (need a grass base underneath) */
+const OBJECT_TILES = new Set(["r", "t", "b", "c", "F", "s", "o"]);
+
 /** Hathi direction → SVG filename (0=N,1=E,2=S,3=W) */
 const HATHI_DIR_FILES = [
   "hathi_0.svg",
@@ -222,6 +225,24 @@ export default function IsometricWorld({
         const rowSprites: Sprite[] = [];
         for (let c = 0; c < cols; c++) {
           const ch = lvl[r]?.[c] ?? "g";
+          const pos = gridToScreen(r, c);
+          const zBase = r + c;
+
+          // If this is an object tile, place a grass base underneath first
+          if (OBJECT_TILES.has(ch)) {
+            const grassTex = texturesRef.current["tile_g"];
+            if (grassTex) {
+              const base = new Sprite(grassTex);
+              base.width = SVG_W;
+              base.height = SVG_H;
+              base.anchor.set(0.5, 0.5);
+              base.x = pos.x;
+              base.y = pos.y;
+              base.zIndex = zBase;
+              wc.addChild(base);
+            }
+          }
+
           const tex = texturesRef.current[`tile_${ch}`] ?? texturesRef.current["tile_g"];
           if (!tex) {
             console.warn(`[IsometricWorld] No texture for tile '${ch}' at (${r},${c})`);
@@ -232,11 +253,9 @@ export default function IsometricWorld({
           sprite.width = SVG_W;
           sprite.height = SVG_H;
           sprite.anchor.set(0.5, 0.5);
-
-          const pos = gridToScreen(r, c);
           sprite.x = pos.x;
           sprite.y = pos.y;
-          sprite.zIndex = r + c;
+          sprite.zIndex = OBJECT_TILES.has(ch) ? zBase + 0.1 : zBase;
 
           wc.addChild(sprite);
           rowSprites.push(sprite);
