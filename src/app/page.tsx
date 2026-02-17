@@ -808,7 +808,13 @@ export default function HomePage() {
     <div className="flex flex-col h-dvh font-mono transition-colors duration-200" style={{ backgroundColor: ui.bg, color: ui.fg }}>
       {/* ---- Header / Toolbar ---- */}
       <header className="flex items-center gap-3 px-4 py-2 shrink-0 transition-colors duration-200" style={{ backgroundColor: ui.surface, borderBottom: `1px solid ${ui.border}` }}>
-        <h1 className="text-lg font-bold mr-4 select-none">🌙 Lua Playground</h1>
+        <h1 className="text-lg font-bold mr-4 select-none">
+          <span
+            className="cursor-pointer hover:opacity-75 transition-opacity"
+            onClick={() => { themeBeforePalette.current = editorTheme; setPaletteOpen(true); }}
+            title="Command Palette (Ctrl+Shift+P)"
+          >🌙</span>{" "}Lua Playground
+        </h1>
 
         {/* ---- File menu ---- */}
         <div className="relative" ref={menuRef}>
@@ -966,16 +972,6 @@ export default function HomePage() {
           {STATUS_LABELS[status]}
         </span>
 
-        <button
-          onClick={() => { themeBeforePalette.current = editorTheme; setPaletteOpen(true); }}
-          className="px-3 py-1 rounded text-sm font-semibold transition-colors"
-          style={{ backgroundColor: ui.btnNeutral, color: ui.btnNeutralText }}
-          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = ui.btnNeutralHover}
-          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = ui.btnNeutral}
-          title="Command Palette (Ctrl+Shift+P)"
-        >
-          ⌘ Palette
-        </button>
       </header>
 
       {/* ---- Content area (main + console, split vertically) ---- */}
