@@ -55,6 +55,124 @@ let initPromise: Promise<void> | null = null;
 const TIMESLICE_COUNT = 20000;
 
 /* ------------------------------------------------------------------ */
+/*  Hathi Lua preamble (injected before user code – pure Lua, no       */
+/*  WASM recompile needed)                                            */
+/* ------------------------------------------------------------------ */
+
+const HATHI_PREAMBLE = `
+-- Hathi API  (tile codes: g=grass w=water f=filled r=rock t=tree
+--   b=bananas c=crate F=flag s=squash o=tomato H=hathi start on grass)
+hathi = {}
+hathi._row = 0
+hathi._col = 0
+hathi._dir = 1   -- 0=N 1=E 2=S 3=W
+hathi._level = nil
+hathi._rows = 0
+hathi._cols = 0
+
+local _dr = {-1, 0, 1, 0}  -- N E S W  row deltas
+local _dc = { 0, 1, 0,-1}  -- N E S W  col deltas
+
+function hathi.loadLevel(tbl)
+  hathi._level = {}
+  hathi._rows = #tbl
+  hathi._cols = 0
+  local startR, startC = 0, 0
+  for r = 1, #tbl do
+    local row = tbl[r]
+    if #row > hathi._cols then hathi._cols = #row end
+    local parsed = {}
+    for c = 1, #row do
+      local ch = row:sub(c, c)
+      if ch == "H" then
+        startR = r - 1
+        startC = c - 1
+        ch = "g"
+      end
+      parsed[c] = ch
+    end
+    hathi._level[r] = parsed
+  end
+  hathi._row = startR
+  hathi._col = startC
+  hathi._dir = 1  -- default East
+  -- serialise level as pipe-separated rows for the host
+  local rows = {}
+  for r = 1, #hathi._level do
+    rows[r] = table.concat(hathi._level[r])
+  end
+  coroutine.yield("__world_init", table.concat(rows, "|") .. "|" .. startR .. "|" .. startC .. "|" .. hathi._dir)
+end
+
+function hathi.forward()
+  local d = hathi._dir + 1
+  local nr = hathi._row + _dr[d]
+  local nc = hathi._col + _dc[d]
+  if nr < 0 or nr >= hathi._rows or nc < 0 or nc >= hathi._cols then return false end
+  -- check walkable (only water and rock block)
+  local tile = hathi._level[nr + 1][nc + 1]
+  if tile == "w" or tile == "r" then return false end
+  hathi._row = nr
+  hathi._col = nc
+  coroutine.yield("__hathi:move", nr .. "|" .. nc .. "|" .. hathi._dir)
+  return true
+end
+
+function hathi.turnLeft()
+  hathi._dir = (hathi._dir + 3) % 4
+  coroutine.yield("__hathi:turn", hathi._row .. "|" .. hathi._col .. "|" .. hathi._dir)
+end
+
+function hathi.turnRight()
+  hathi._dir = (hathi._dir + 1) % 4
+  coroutine.yield("__hathi:turn", hathi._row .. "|" .. hathi._col .. "|" .. hathi._dir)
+end
+
+function hathi.pick()
+  local r = hathi._row + 1
+  local c = hathi._col + 1
+  local tile = hathi._level[r][c]
+  if tile == "b" or tile == "s" or tile == "o" then
+    hathi._level[r][c] = "g"
+    coroutine.yield("__hathi:tile", (r-1) .. "|" .. (c-1) .. "|g")
+    return tile
+  end
+  return nil
+end
+
+function hathi.put(ch)
+  local r = hathi._row + 1
+  local c = hathi._col + 1
+  hathi._level[r][c] = ch
+  coroutine.yield("__hathi:tile", (r-1) .. "|" .. (c-1) .. "|" .. ch)
+end
+
+function hathi.getDir()
+  return hathi._dir
+end
+
+function hathi.getRow()
+  return hathi._row
+end
+
+function hathi.getCol()
+  return hathi._col
+end
+
+function hathi.isWall()
+  local d = hathi._dir + 1
+  local nr = hathi._row + _dr[d]
+  local nc = hathi._col + _dc[d]
+  if nr < 0 or nr >= hathi._rows or nc < 0 or nc >= hathi._cols then return true end
+  local tile = hathi._level[nr + 1][nc + 1]
+  return tile == "w" or tile == "r"
+end
+`;
+
+/** Number of lines in the preamble – subtracted from error line numbers */
+const PREAMBLE_LINES = HATHI_PREAMBLE.split("\n").length - 1;
+
+/* ------------------------------------------------------------------ */
 /*  Helpers                                                           */
 /* ------------------------------------------------------------------ */
 
@@ -228,14 +346,66 @@ function tick() {
       return;
     }
 
+    /* ---- Hathi / World yield tags ---- */
+
+    if (yieldTag === "__world_init") {
+      // payload: "row1|row2|...|startR|startC|dir"
+      const payload = nresults >= 2 ? (bridge.tostring(co, -nresults + 1) ?? "") : "";
+      bridge.pop(co, nresults);
+      const parts = payload.split("|");
+      const dir = parseInt(parts.pop()!, 10);
+      const startC = parseInt(parts.pop()!, 10);
+      const startR = parseInt(parts.pop()!, 10);
+      const level = parts;
+      post({ type: "SHOW_WORLD" });
+      post({ type: "WORLD_INIT", level, hathiRow: startR, hathiCol: startC, hathiDir: dir });
+      scheduleTick();
+      return;
+    }
+
+    if (yieldTag === "__hathi:move") {
+      const payload = nresults >= 2 ? (bridge.tostring(co, -nresults + 1) ?? "") : "";
+      bridge.pop(co, nresults);
+      const [r, c, d] = payload.split("|").map(Number);
+      post({ type: "WORLD_PATCH", patches: [{ kind: "hathi", row: r, col: c, dir: d }] });
+      // Small delay so animation is visible
+      schedulerTimer = setTimeout(tick, 150);
+      return;
+    }
+
+    if (yieldTag === "__hathi:turn") {
+      const payload = nresults >= 2 ? (bridge.tostring(co, -nresults + 1) ?? "") : "";
+      bridge.pop(co, nresults);
+      const [r, c, d] = payload.split("|").map(Number);
+      post({ type: "WORLD_PATCH", patches: [{ kind: "hathi", row: r, col: c, dir: d }] });
+      schedulerTimer = setTimeout(tick, 100);
+      return;
+    }
+
+    if (yieldTag === "__hathi:tile") {
+      const payload = nresults >= 2 ? (bridge.tostring(co, -nresults + 1) ?? "") : "";
+      bridge.pop(co, nresults);
+      const parts = payload.split("|");
+      const row = parseInt(parts[0], 10);
+      const col = parseInt(parts[1], 10);
+      const tile = parts[2];
+      post({ type: "WORLD_PATCH", patches: [{ kind: "tile", row, col, tile }] });
+      scheduleTick();
+      return;
+    }
+
     // Unknown yield – treat as slice
     bridge.pop(co, nresults);
     scheduleTick();
     return;
   }
 
-  // Error
-  const errMsg = bridge.tostring(co, -1) ?? "unknown Lua error";
+  // Error — correct line number for preamble offset
+  let errMsg = bridge.tostring(co, -1) ?? "unknown Lua error";
+  errMsg = errMsg.replace(/\]:([0-9]+):/, (_m, ln) => {
+    const corrected = Math.max(1, parseInt(ln, 10) - PREAMBLE_LINES);
+    return `]:${corrected}:`;
+  });
   bridge.clearstack(co);
   running = false;
   post({ type: "ERROR", message: errMsg });
@@ -267,10 +437,16 @@ self.onmessage = async (e: MessageEvent<MsgToWorker>) => {
       // Fresh VM
       newVM();
 
-      // Load user code
-      const loadStatus = bridge!.load(co, msg.code);
+      // Load user code (prepend hathi preamble)
+      const fullCode = HATHI_PREAMBLE + "\n" + msg.code;
+      const loadStatus = bridge!.load(co, fullCode);
       if (loadStatus !== 0) {
-        const err = bridge!.tostring(co, -1) ?? "syntax error";
+        let err = bridge!.tostring(co, -1) ?? "syntax error";
+        // Correct line numbers by subtracting preamble lines
+        err = err.replace(/\]:([0-9]+):/, (_m, ln) => {
+          const corrected = Math.max(1, parseInt(ln, 10) - PREAMBLE_LINES);
+          return `]:${corrected}:`;
+        });
         bridge!.clearstack(co);
         post({ type: "ERROR", message: err });
         post({ type: "STATUS", state: "error" });

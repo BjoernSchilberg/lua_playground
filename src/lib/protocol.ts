@@ -15,6 +15,12 @@ export type MsgToWorker =
   | { type: "RESET" }
   | { type: "STDIN_SUBMIT"; value: string };
 
+/* ---- World / Hathi types ---- */
+
+export type WorldPatch =
+  | { kind: "hathi"; row: number; col: number; dir: number }
+  | { kind: "tile"; row: number; col: number; tile: string };
+
 /* Messages sent FROM the worker */
 export type MsgFromWorker =
   | { type: "READY" }
@@ -22,4 +28,7 @@ export type MsgFromWorker =
   | { type: "STATUS"; state: WorkerState }
   | { type: "CONSOLE_CLEAR" }
   | { type: "STDIN_REQUEST" }
-  | { type: "ERROR"; message: string; stack?: string };
+  | { type: "ERROR"; message: string; stack?: string }
+  | { type: "SHOW_WORLD" }
+  | { type: "WORLD_INIT"; level: string[]; hathiRow: number; hathiCol: number; hathiDir: number }
+  | { type: "WORLD_PATCH"; patches: WorldPatch[] };

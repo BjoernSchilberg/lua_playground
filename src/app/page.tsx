@@ -20,6 +20,16 @@ const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
   ),
 });
 
+// Dynamically import IsometricWorld (PixiJS needs browser APIs)
+const IsometricWorld = dynamic(() => import("@/components/IsometricWorld"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center h-full text-neutral-500">
+      Loading world…
+    </div>
+  ),
+});
+
 const DEFAULT_CODE = `print("Lua WASM ready ✅")
 print("Wie heißt du? ")
 name = io.read()
@@ -30,6 +40,7 @@ print("Hallo " .. name)
 const STORAGE_KEY = "lua_playground_scripts";
 
 const EXAMPLES: { name: string; file: string }[] = [
+  { name: "Hathi Demo 🐘", file: `${basePath}/examples/hathi_demo.lua` },
   { name: "Conway's Game of Life", file: `${basePath}/examples/conway.lua` },
   { name: "Beispiel für Eingabe", file: `${basePath}/examples/input.lua` },
   { name: "Lua in 15 Minutes", file: `${basePath}/examples/LearnLuaIn15min.lua` },
@@ -154,6 +165,8 @@ export default function HomePage() {
 
   /* ---- World panel state ---- */
   const [showWorld, setShowWorld] = useState(false);
+  const [worldLevel, setWorldLevel] = useState<string[] | null>(null);
+  const [hathiPos, setHathiPos] = useState({ row: 0, col: 0, dir: 1 });
 
   /* ---- Adaptive UI colours derived from editor theme ---- */
   const [themeBg, setThemeBg] = useState("#1e1e1e");
@@ -702,6 +715,30 @@ export default function HomePage() {
           { text: `Error: ${msg.message}`, isError: true },
         ]);
         break;
+      case "SHOW_WORLD":
+        setShowWorld(true);
+        break;
+      case "WORLD_INIT":
+        setWorldLevel(msg.level);
+        setHathiPos({ row: msg.hathiRow, col: msg.hathiCol, dir: msg.hathiDir });
+        break;
+      case "WORLD_PATCH":
+        for (const p of msg.patches) {
+          if (p.kind === "hathi") {
+            setHathiPos({ row: p.row, col: p.col, dir: p.dir });
+          } else if (p.kind === "tile") {
+            setWorldLevel((prev) => {
+              if (!prev) return prev;
+              const next = [...prev];
+              const row = next[p.row];
+              if (row !== undefined) {
+                next[p.row] = row.substring(0, p.col) + p.tile + row.substring(p.col + 1);
+              }
+              return next;
+            });
+          }
+        }
+        break;
     }
   }, []);
 
@@ -729,6 +766,9 @@ export default function HomePage() {
   const handleReset = () => {
     workerRef.current?.reset();
     setInputValue("");
+    setWorldLevel(null);
+    setShowWorld(false);
+    setHathiPos({ row: 0, col: 0, dir: 1 });
   };
 
   const handleInputSubmit = (e: React.FormEvent) => {
@@ -1038,11 +1078,13 @@ export default function HomePage() {
                 style={{ backgroundColor: ui.handle }}
               />
 
-              <div className="flex-1 min-w-0 flex flex-col items-center justify-center select-none" style={{ backgroundColor: ui.surface2, color: ui.muted }}>
-                <div className="text-4xl mb-2">🌍</div>
-                <div className="text-sm">Isometric World</div>
-                <div className="text-xs mt-1">(Phase 2)</div>
-              </div>
+              <IsometricWorld
+                level={worldLevel}
+                hathiRow={hathiPos.row}
+                hathiCol={hathiPos.col}
+                hathiDir={hathiPos.dir}
+                bgColor={ui.surface2}
+              />
             </>
           )}
         </main>
