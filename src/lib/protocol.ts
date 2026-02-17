@@ -4,6 +4,7 @@ export type WorkerState =
   | "idle"
   | "running"
   | "waiting_input"
+  | "paused"
   | "stopped"
   | "error";
 
@@ -11,6 +12,9 @@ export type WorkerState =
 export type MsgToWorker =
   | { type: "INIT" }
   | { type: "RUN"; code: string }
+  | { type: "STEP"; code: string }   // Start or step-next (code only needed on first call)
+  | { type: "STEP_NEXT" }              // Advance one line while paused
+  | { type: "CONTINUE" }               // Resume full-speed from paused state
   | { type: "STOP" }
   | { type: "RESET" }
   | { type: "STDIN_SUBMIT"; value: string };
@@ -31,4 +35,5 @@ export type MsgFromWorker =
   | { type: "ERROR"; message: string; stack?: string }
   | { type: "SHOW_WORLD" }
   | { type: "WORLD_INIT"; level: string[]; hathiRow: number; hathiCol: number; hathiDir: number }
-  | { type: "WORLD_PATCH"; patches: WorldPatch[] };
+  | { type: "WORLD_PATCH"; patches: WorldPatch[] }
+  | { type: "LINE_PAUSED"; line: number };

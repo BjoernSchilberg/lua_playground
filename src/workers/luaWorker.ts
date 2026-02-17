@@ -31,6 +31,9 @@ interface LuaBridge {
   pop: (co: Ptr, n: number) => void;
   close: (L: Ptr) => void;
   setup_hook: (L: Ptr, co: Ptr, count: number) => number;
+  set_step_mode: (mode: number) => void;
+  get_current_line: () => number;
+  update_hook: (co: Ptr, count: number) => void;
 }
 
 /* ------------------------------------------------------------------ */
@@ -46,6 +49,7 @@ let co: Ptr = 0;  // coroutine thread
 
 let running = false;
 let waitingInput = false;
+let stepping = false;  // true when in single-step mode
 let schedulerTimer: ReturnType<typeof setTimeout> | null = null;
 
 const stdinQueue: string[] = [];
@@ -239,6 +243,9 @@ async function ensureInit(): Promise<void> {
         "number",
         "number",
       ]),
+      set_step_mode: Module.cwrap("lua_bridge_set_step_mode", null, ["number"]),
+      get_current_line: Module.cwrap("lua_bridge_get_current_line", "number", []),
+      update_hook: Module.cwrap("lua_bridge_update_hook", null, ["number", "number"]),
     };
 
     post({ type: "READY" });
@@ -282,6 +289,7 @@ function destroyVM() {
 function stopScheduler() {
   running = false;
   waitingInput = false;
+  stepping = false;
   if (schedulerTimer !== null) {
     clearTimeout(schedulerTimer);
     schedulerTimer = null;
@@ -311,7 +319,22 @@ function tick() {
     const nresults = bridge.get_nresults();
 
     if (nresults === 0) {
-      // Hook yield (C-level timeslice) – no values on stack
+      // Hook yield – either timeslice (current_line == -1) or line-step
+      const hookLine = bridge.get_current_line();
+      if (hookLine >= 0) {
+        // Line-step yield: pause and report user line number
+        const userLine = hookLine - PREAMBLE_LINES;
+        if (userLine <= 0) {
+          // Still in preamble – auto-continue
+          scheduleTick();
+          return;
+        }
+        // Pause execution and report line to UI
+        post({ type: "LINE_PAUSED", line: userLine });
+        post({ type: "STATUS", state: "paused" });
+        return; // stop scheduling – wait for STEP_NEXT or CONTINUE
+      }
+      // Normal timeslice yield
       scheduleTick();
       return;
     }
@@ -438,7 +461,7 @@ self.onmessage = async (e: MessageEvent<MsgToWorker>) => {
       newVM();
 
       // Load user code (prepend hathi preamble)
-      const fullCode = HATHI_PREAMBLE + "\n" + msg.code;
+      const fullCode = HATHI_PREAMBLE + msg.code;
       const loadStatus = bridge!.load(co, fullCode);
       if (loadStatus !== 0) {
         let err = bridge!.tostring(co, -1) ?? "syntax error";
@@ -453,12 +476,77 @@ self.onmessage = async (e: MessageEvent<MsgToWorker>) => {
         return;
       }
 
-      // Install timeslice hook
+      // Normal run – disable step mode
+      bridge!.set_step_mode(0);
+      stepping = false;
       bridge!.setup_hook(L, co, TIMESLICE_COUNT);
 
       // Go
       running = true;
       waitingInput = false;
+      post({ type: "STATUS", state: "running" });
+      scheduleTick();
+      break;
+    }
+
+    case "STEP": {
+      await ensureInit();
+
+      // Stop any previous run
+      stopScheduler();
+      stdinQueue.length = 0;
+      Module.stdinBuffer.length = 0;
+
+      // Fresh VM
+      newVM();
+
+      // Load user code (prepend hathi preamble)
+      const stepFullCode = HATHI_PREAMBLE + msg.code;
+      const stepLoadStatus = bridge!.load(co, stepFullCode);
+      if (stepLoadStatus !== 0) {
+        let err = bridge!.tostring(co, -1) ?? "syntax error";
+        err = err.replace(/\]:([0-9]+):/, (_m, ln) => {
+          const corrected = Math.max(1, parseInt(ln, 10) - PREAMBLE_LINES);
+          return `]:${corrected}:`;
+        });
+        bridge!.clearstack(co);
+        post({ type: "ERROR", message: err });
+        post({ type: "STATUS", state: "error" });
+        return;
+      }
+
+      // Enable step mode
+      bridge!.set_step_mode(1);
+      stepping = true;
+      bridge!.setup_hook(L, co, TIMESLICE_COUNT);
+
+      // Go – tick will pause at first user line
+      running = true;
+      waitingInput = false;
+      post({ type: "STATUS", state: "running" });
+      scheduleTick();
+      break;
+    }
+
+    case "STEP_NEXT": {
+      // Resume one step while already paused
+      if (!bridge || !co) break;
+      bridge.set_step_mode(1);
+      stepping = true;
+      bridge.update_hook(co, TIMESLICE_COUNT);
+      running = true;
+      post({ type: "STATUS", state: "running" });
+      scheduleTick();
+      break;
+    }
+
+    case "CONTINUE": {
+      // Resume full-speed execution from paused state
+      if (!bridge || !co) break;
+      bridge.set_step_mode(0);
+      stepping = false;
+      bridge.update_hook(co, TIMESLICE_COUNT);
+      running = true;
       post({ type: "STATUS", state: "running" });
       scheduleTick();
       break;

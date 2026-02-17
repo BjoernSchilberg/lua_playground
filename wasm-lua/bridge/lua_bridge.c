@@ -243,16 +243,57 @@ void lua_bridge_close(lua_State *L) {
  * L->status == LUA_YIELD after the hook returns and handles it.
  * The hook yields 0 values (no "__slice" string), so the JS side
  * must treat a nil yield value as a timeslice signal.
+ *
+ * Step-mode extension:
+ *   When step_mode == 1 the hook also fires on LUA_MASKLINE.
+ *   On a line event it stores the current line number in
+ *   `current_line` (readable via lua_bridge_get_current_line)
+ *   and yields.  The JS side checks current_line to distinguish
+ *   a line-step pause from a timeslice yield.
  */
 
-static void timeslice_hook(lua_State *L, lua_Debug *ar) {
-    (void)ar;
-    lua_yield(L, 0);  /* hooks MUST yield 0 values (Lua 5.4 requirement) */
+static int step_mode = 0;      /* 0 = run, 1 = single-step */
+static int current_line = -1;  /* -1 = no line event pending */
+
+static void debug_hook(lua_State *L, lua_Debug *ar) {
+    if (ar->event == LUA_HOOKLINE && step_mode) {
+        current_line = ar->currentline;
+        lua_yield(L, 0);
+    } else if (ar->event == LUA_HOOKCOUNT) {
+        current_line = -1;
+        lua_yield(L, 0);
+    }
 }
 
 EMSCRIPTEN_KEEPALIVE
 int lua_bridge_setup_hook(lua_State *L, lua_State *co, int count) {
     (void)L;
-    lua_sethook(co, timeslice_hook, LUA_MASKCOUNT, count);
+    int mask = LUA_MASKCOUNT;
+    if (step_mode) mask |= LUA_MASKLINE;
+    lua_sethook(co, debug_hook, mask, count);
     return 0;
+}
+
+EMSCRIPTEN_KEEPALIVE
+void lua_bridge_set_step_mode(int mode) {
+    step_mode = mode;
+}
+
+EMSCRIPTEN_KEEPALIVE
+int lua_bridge_get_current_line(void) {
+    int line = current_line;
+    current_line = -1;  /* auto-reset after read */
+    return line;
+}
+
+/*
+ * lua_bridge_update_hook(co, count)
+ * Re-applies the hook with the correct mask for the current step_mode.
+ * Call after changing step_mode to update an already-running coroutine.
+ */
+EMSCRIPTEN_KEEPALIVE
+void lua_bridge_update_hook(lua_State *co, int count) {
+    int mask = LUA_MASKCOUNT;
+    if (step_mode) mask |= LUA_MASKLINE;
+    lua_sethook(co, debug_hook, mask, count);
 }

@@ -73,6 +73,7 @@ const STATUS_LABELS: Record<WorkerState, string> = {
   idle: "Idle",
   running: "Running…",
   waiting_input: "Waiting for input…",
+  paused: "Paused",
   stopped: "Stopped",
   error: "Error",
 };
@@ -81,6 +82,7 @@ const STATUS_COLORS: Record<WorkerState, string> = {
   idle: "bg-neutral-600",
   running: "bg-green-600",
   waiting_input: "bg-yellow-600",
+  paused: "bg-blue-600",
   stopped: "bg-red-600",
   error: "bg-red-700",
 };
@@ -133,6 +135,11 @@ export default function HomePage() {
     { text: string; isError?: boolean }[]
   >([]);
   const [status, setStatus] = useState<WorkerState>("idle");
+  const statusRef = useRef<WorkerState>("idle");
+  const setStatusAndRef = useCallback((s: WorkerState) => {
+    statusRef.current = s;
+    setStatus(s);
+  }, []);
   const [inputValue, setInputValue] = useState("");
   const [ready, setReady] = useState(false);
 
@@ -167,6 +174,10 @@ export default function HomePage() {
   const [showWorld, setShowWorld] = useState(false);
   const [worldLevel, setWorldLevel] = useState<string[] | null>(null);
   const [hathiPos, setHathiPos] = useState({ row: 0, col: 0, dir: 1 });
+
+  /* ---- Step debugger state ---- */
+  const [pausedLine, setPausedLine] = useState<number | null>(null);
+  const decorationsRef = useRef<string[]>([]);
 
   /* ---- Adaptive UI colours derived from editor theme ---- */
   const [themeBg, setThemeBg] = useState("#1e1e1e");
@@ -248,6 +259,24 @@ export default function HomePage() {
         setConsoleLines([]);
         const currentCode = editorInstance.getModel()?.getValue() ?? "";
         workerRef.current?.run(currentCode);
+      },
+    });
+
+    editorInstance.addAction({
+      id: "lua-playground.step",
+      label: "Step (line by line)",
+      keybindings: [monaco.KeyCode.F10],
+      run: () => {
+        // Dispatched via handleStep — will be called from global handler
+      },
+    });
+
+    editorInstance.addAction({
+      id: "lua-playground.continue",
+      label: "Continue execution",
+      keybindings: [monaco.KeyCode.F5],
+      run: () => {
+        // Dispatched via handleContinue — will be called from global handler
       },
     });
 
@@ -586,6 +615,26 @@ export default function HomePage() {
         const currentCode = editorRef.current?.getModel()?.getValue() ?? "";
         workerRef.current?.run(currentCode);
       }
+      // F10 → Step (fresh start or step-next when paused)
+      if (e.key === "F10") {
+        e.preventDefault();
+        if (statusRef.current === "paused") {
+          workerRef.current?.stepNext();
+        } else {
+          setPausedLine(null);
+          setConsoleLines([]);
+          const currentCode = editorRef.current?.getModel()?.getValue() ?? "";
+          workerRef.current?.step(currentCode);
+        }
+      }
+      // F5 → Continue (resume from paused)
+      if (e.key === "F5") {
+        e.preventDefault();
+        if (statusRef.current === "paused") {
+          setPausedLine(null);
+          workerRef.current?.continue_();
+        }
+      }
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
@@ -595,6 +644,34 @@ export default function HomePage() {
   useEffect(() => {
     consoleEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [consoleLines]);
+
+  // Step debugger: highlight current line in Monaco
+  useEffect(() => {
+    const ed = editorRef.current;
+    if (!ed) return;
+    if (pausedLine !== null) {
+      decorationsRef.current = ed.deltaDecorations(decorationsRef.current, [
+        {
+          range: {
+            startLineNumber: pausedLine,
+            startColumn: 1,
+            endLineNumber: pausedLine,
+            endColumn: 1,
+          },
+          options: {
+            isWholeLine: true,
+            className: "debug-line-highlight",
+            glyphMarginClassName: "debug-line-glyph",
+          },
+        },
+      ]);
+      // Scroll the line into view
+      ed.revealLineInCenter(pausedLine);
+    } else {
+      // Clear decorations
+      decorationsRef.current = ed.deltaDecorations(decorationsRef.current, []);
+    }
+  }, [pausedLine]);
 
   // Focus input when waiting for stdin
   useEffect(() => {
@@ -695,13 +772,13 @@ export default function HomePage() {
     switch (msg.type) {
       case "READY":
         setReady(true);
-        setStatus("idle");
+        setStatusAndRef("idle");
         break;
       case "STDOUT":
         setConsoleLines((prev) => [...prev, { text: msg.text }]);
         break;
       case "STATUS":
-        setStatus(msg.state);
+        setStatusAndRef(msg.state);
         break;
       case "STDIN_REQUEST":
         // Status is set via STATUS message from worker
@@ -739,8 +816,11 @@ export default function HomePage() {
           }
         }
         break;
+      case "LINE_PAUSED":
+        setPausedLine(msg.line);
+        break;
     }
-  }, []);
+  }, [setStatusAndRef]);
 
   // Initialize worker
   useEffect(() => {
@@ -755,15 +835,35 @@ export default function HomePage() {
   /* ---- Actions ---- */
 
   const handleRun = () => {
+    setPausedLine(null);
     setConsoleLines([]);
     workerRef.current?.run(code);
   };
 
+  const handleStep = () => {
+    if (status === "paused") {
+      // Already paused — step to next line
+      workerRef.current?.stepNext();
+    } else {
+      // Fresh start in step mode
+      setPausedLine(null);
+      setConsoleLines([]);
+      workerRef.current?.step(code);
+    }
+  };
+
+  const handleContinue = () => {
+    setPausedLine(null);
+    workerRef.current?.continue_();
+  };
+
   const handleStop = () => {
+    setPausedLine(null);
     workerRef.current?.stop();
   };
 
   const handleReset = () => {
+    setPausedLine(null);
     workerRef.current?.reset();
     setInputValue("");
     setWorldLevel(null);
@@ -856,6 +956,8 @@ export default function HomePage() {
   };
 
   const isRunning = status === "running" || status === "waiting_input";
+  const isPaused = status === "paused";
+  const isBusy = isRunning || isPaused;
 
   return (
     <div className="flex flex-col h-dvh font-mono transition-colors duration-200" style={{ backgroundColor: ui.bg, color: ui.fg }}>
@@ -992,15 +1094,32 @@ export default function HomePage() {
 
         <button
           onClick={handleRun}
-          disabled={!ready || isRunning}
+          disabled={!ready || isBusy}
           className="px-3 py-1 rounded bg-green-700 hover:bg-green-600 disabled:opacity-40 disabled:cursor-not-allowed text-sm font-semibold transition-colors"
           title="Run (Ctrl+Enter)"
         >
           ▶ Run
         </button>
         <button
+          onClick={handleStep}
+          disabled={!ready || (isBusy && !isPaused)}
+          className="px-3 py-1 rounded bg-blue-700 hover:bg-blue-600 disabled:opacity-40 disabled:cursor-not-allowed text-sm font-semibold transition-colors"
+          title="Step (F10)"
+        >
+          ⏭ Step
+        </button>
+        {isPaused && (
+          <button
+            onClick={handleContinue}
+            className="px-3 py-1 rounded bg-green-700 hover:bg-green-600 text-sm font-semibold transition-colors"
+            title="Continue (F5)"
+          >
+            ▶▶ Continue
+          </button>
+        )}
+        <button
           onClick={handleStop}
-          disabled={!isRunning}
+          disabled={!isBusy}
           className="px-3 py-1 rounded bg-red-700 hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed text-sm font-semibold transition-colors"
         >
           ⏹ Stop
@@ -1051,6 +1170,7 @@ export default function HomePage() {
                   tabSize: 2,
                   cursorStyle: "block",
                   mouseWheelZoom: true,
+                  glyphMargin: true,
                 }}
               />
             </div>

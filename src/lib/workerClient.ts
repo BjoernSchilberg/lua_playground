@@ -33,6 +33,21 @@ export class LuaWorkerClient {
     this.post({ type: "RUN", code });
   }
 
+  /** Start execution in step mode (pauses at first user line) */
+  step(code: string) {
+    this.post({ type: "STEP", code });
+  }
+
+  /** Advance one line while paused */
+  stepNext() {
+    this.post({ type: "STEP_NEXT" });
+  }
+
+  /** Resume full-speed execution from paused state */
+  continue_() {
+    this.post({ type: "CONTINUE" });
+  }
+
   stop() {
     this.post({ type: "STOP" });
   }
