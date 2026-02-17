@@ -229,9 +229,9 @@ export default function IsometricWorld({
     if (!dragRef.current) return;
     const dx = dragRef.current.accum;
     if (dx > 60) {
-      setViewStep((s) => ((s - 1) % 4 + 4) % 4);
+      setViewStep((s) => (s + 1) % 4);            // drag right → rotate CW
     } else if (dx < -60) {
-      setViewStep((s) => (s + 1) % 4);
+      setViewStep((s) => ((s - 1) % 4 + 4) % 4);  // drag left  → rotate CCW
     }
     dragRef.current = null;
   }, []);
@@ -316,7 +316,7 @@ export default function IsometricWorld({
     }
 
     // Hathi — compute position and SVG name (separate from tile items for animation)
-    const displayDir = ((hathiDir - viewStep) % 4 + 4) % 4;
+    const displayDir = (hathiDir + viewStep) % 4;
     const hp = project(animRow, animCol, centerRow, centerCol, viewStep);
     const hathiItem = {
       x: hp.x,
