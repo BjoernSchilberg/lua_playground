@@ -41,6 +41,7 @@ const STORAGE_KEY = "lua_playground_scripts";
 
 const EXAMPLES: { name: string; file: string }[] = [
   { name: "Hathi Demo 🐘", file: `${basePath}/examples/hathi_demo.lua` },
+  { name: "Hathi Demo Simple 🐘", file: `${basePath}/examples/hathi_demo_simple.lua` },
   { name: "Conway's Game of Life", file: `${basePath}/examples/conway.lua` },
   { name: "Beispiel für Eingabe", file: `${basePath}/examples/input.lua` },
   { name: "Lua in 15 Minutes", file: `${basePath}/examples/LearnLuaIn15min.lua` },
