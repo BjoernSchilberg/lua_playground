@@ -43,3 +43,5 @@ yarn-error.log*
 /wasm-lua/lua-5.4.6/
 /wasm-lua/dist/
 next-env.d.ts
+
+.vscode/
