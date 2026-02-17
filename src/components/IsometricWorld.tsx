@@ -23,6 +23,13 @@ const TILE_FILE: Record<string, string> = {
 /** Tiles that are objects placed ON grass (need a grass base underneath) */
 const OBJECT_TILES = new Set(["r", "t", "b", "c", "F", "s", "o"]);
 
+/**
+ * Hathi logical direction (0=N,1=E,2=S,3=W) → SVG file index.
+ * hathi_0 = forward, hathi_1 = right, hathi_2 = backward, hathi_3 = left
+ * Cycling 0→1→2→3 alternates the scale-flip on each turn for smooth 90° visuals.
+ */
+const HATHI_FILE_INDEX = [3, 0, 1, 2];
+
 /* ------------------------------------------------------------------ */
 /*  Isometric constants                                               */
 /*  All SVGs share viewBox="-80 -160 160 320"                         */
@@ -244,9 +251,16 @@ export default function IsometricWorld({
   /*  Build SVG elements                                              */
   /* ---------------------------------------------------------------- */
 
-  const { elements, viewBox } = useMemo(() => {
+  const { tilesBefore, tilesAfter, hathiSvgContent, hathiX, hathiY, viewBox } = useMemo(() => {
     if (!level || !svgsLoaded || level.length === 0) {
-      return { elements: [] as React.ReactNode[], viewBox: "-200 -200 400 400" };
+      return {
+        tilesBefore: [] as React.ReactNode[],
+        tilesAfter: [] as React.ReactNode[],
+        hathiSvgContent: "",
+        hathiX: 0,
+        hathiY: 0,
+        viewBox: "-200 -200 400 400",
+      };
     }
 
     const rows = level.length;
@@ -301,25 +315,24 @@ export default function IsometricWorld({
       }
     }
 
-    // Add hathi
+    // Hathi — compute position and SVG name (separate from tile items for animation)
     const displayDir = ((hathiDir - viewStep) % 4 + 4) % 4;
     const hp = project(animRow, animCol, centerRow, centerCol, viewStep);
-    items.push({
-      key: "hathi",
+    const hathiItem = {
       x: hp.x,
       y: hp.y,
       depth: hp.depth + 0.5,
-      svgName: `hathi_${displayDir}`,
-    });
+      svgName: `hathi_${HATHI_FILE_INDEX[displayDir]}`,
+    };
 
-    // Sort by depth
+    // Sort tiles by depth
     items.sort((a, b) => a.depth - b.depth);
 
-    // Compute bounding box
+    // Compute bounding box (include hathi)
     const halfW = SVG_W / 2;
     const halfH = SVG_H / 2;
     let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-    for (const item of items) {
+    for (const item of [...items, hathiItem]) {
       minX = Math.min(minX, item.x - halfW);
       maxX = Math.max(maxX, item.x + halfW);
       minY = Math.min(minY, item.y - halfH);
@@ -332,8 +345,18 @@ export default function IsometricWorld({
     const vbW = (maxX - minX) + 2 * pad;
     const vbH = (maxY - minY) + 2 * pad;
 
-    // Build SVG elements — each tile is a nested <svg> with the original viewBox
-    const els = items.map((item) => (
+    // Split tiles into before/after hathi by depth for correct z-ordering
+    const beforeHathi: typeof items = [];
+    const afterHathi: typeof items = [];
+    for (const item of items) {
+      if (item.depth <= hathiItem.depth) {
+        beforeHathi.push(item);
+      } else {
+        afterHathi.push(item);
+      }
+    }
+
+    const makeTileSvg = (item: typeof items[0]) => (
       <svg
         key={item.key}
         x={item.x - halfW}
@@ -344,10 +367,14 @@ export default function IsometricWorld({
         overflow="visible"
         dangerouslySetInnerHTML={{ __html: svgCache[item.svgName] || "" }}
       />
-    ));
+    );
 
     return {
-      elements: els,
+      tilesBefore: beforeHathi.map(makeTileSvg),
+      tilesAfter: afterHathi.map(makeTileSvg),
+      hathiSvgContent: (svgCache[hathiItem.svgName] ?? "") as string,
+      hathiX: hathiItem.x - halfW,
+      hathiY: hathiItem.y - halfH,
       viewBox: `${vbX} ${vbY} ${vbW} ${vbH}`,
     };
   }, [level, svgsLoaded, viewStep, animRow, animCol, hathiDir]);
@@ -376,7 +403,18 @@ export default function IsometricWorld({
           transformOrigin: "center center",
         }}
       >
-        {elements}
+        {tilesBefore}
+        <svg
+          key="hathi"
+          x={hathiX}
+          y={hathiY}
+          width={SVG_W}
+          height={SVG_H}
+          viewBox={SVG_VB}
+          overflow="visible"
+          dangerouslySetInnerHTML={{ __html: hathiSvgContent }}
+        />
+        {tilesAfter}
       </svg>
 
       {/* Compass rose — bottom-right corner */}
