@@ -6,6 +6,10 @@ Why another webbased Lua Playgroung.
 
 This playground can handle blocking inputs (`io.read()`) and infinite while loops
 ```while true do end```.
+It has a VSCode-based editor
+([Monaco](https://microsoft.github.io/monaco-editor/)) with all the fancy
+stuff, syntax highlighting, theming, and a command palette for control, vim
+mode for the nerds, ...
 
 
 ## Development
