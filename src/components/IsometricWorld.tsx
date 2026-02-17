@@ -125,12 +125,17 @@ export default function IsometricWorld({
         app.stage.addChild(wc);
         worldContainerRef.current = wc;
 
-        // Load all tile + hathi textures
+        // Load all tile + hathi textures at high resolution so they stay
+        // crisp when the world container is scaled up.
+        const svgRes = Math.max(window.devicePixelRatio || 1, 2) * 1.5;
         const loaded: Record<string, Texture> = {};
         for (const [code, file] of Object.entries(TILE_FILES)) {
           const url = `${basePath}/hathi/${file}`;
           try {
-            loaded[`tile_${code}`] = await Assets.load<Texture>(url);
+            loaded[`tile_${code}`] = await Assets.load<Texture>({
+              src: url,
+              data: { resolution: svgRes },
+            });
           } catch (err) {
             console.warn(`[IsometricWorld] Failed to load tile ${code}:`, err);
           }
@@ -138,7 +143,10 @@ export default function IsometricWorld({
         for (let d = 0; d < 4; d++) {
           const url = `${basePath}/hathi/${HATHI_DIR_FILES[d]}`;
           try {
-            loaded[`hathi_${d}`] = await Assets.load<Texture>(url);
+            loaded[`hathi_${d}`] = await Assets.load<Texture>({
+              src: url,
+              data: { resolution: svgRes },
+            });
           } catch (err) {
             console.warn(`[IsometricWorld] Failed to load hathi_${d}:`, err);
           }
