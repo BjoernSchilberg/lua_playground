@@ -30,8 +30,8 @@ print("Hallo " .. name)
 const STORAGE_KEY = "lua_playground_scripts";
 
 const EXAMPLES: { name: string; file: string }[] = [
-  { name: "Conway's Game of Life", file: "/examples/conway.lua" },
-  { name: "Beispiel für Eingabe", file: "/examples/input.lua" },
+  { name: "Conway's Game of Life", file: `${basePath}/examples/conway.lua` },
+  { name: "Beispiel für Eingabe", file: `${basePath}/examples/input.lua` },
 ];
 
 /* ---- localStorage helpers ---- */
