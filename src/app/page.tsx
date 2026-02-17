@@ -32,6 +32,7 @@ const STORAGE_KEY = "lua_playground_scripts";
 const EXAMPLES: { name: string; file: string }[] = [
   { name: "Conway's Game of Life", file: `${basePath}/examples/conway.lua` },
   { name: "Beispiel für Eingabe", file: `${basePath}/examples/input.lua` },
+  { name: "Lua in 15 Minutes", file: `${basePath}/examples/LearnLuaIn15min.lua` },
 ];
 
 /* ---- localStorage helpers ---- */
@@ -150,6 +151,9 @@ export default function HomePage() {
 
   /* ---- Line numbers state ---- */
   const [lineNumbers, setLineNumbers] = useState(true);
+
+  /* ---- World panel state ---- */
+  const [showWorld, setShowWorld] = useState(false);
 
   // Restore vim preference after hydration
   useEffect(() => {
@@ -362,13 +366,18 @@ export default function HomePage() {
         label: lineNumbers ? "Hide Line Numbers" : "Show Line Numbers",
         category: "Editor",
       },
+      {
+        id: "editor:toggleWorld",
+        label: showWorld ? "Hide Isometric World" : "Show Isometric World",
+        category: "Editor",
+      },
       ...themeList.map((t) => ({
         id: `theme:${t.id}`,
         label: t.label,
         category: "Theme",
       })),
     ],
-    [themeList, vimEnabled, lineNumbers]
+    [themeList, vimEnabled, lineNumbers, showWorld]
   );
 
   const themeBeforePalette = useRef("vs-dark");
@@ -445,6 +454,11 @@ export default function HomePage() {
         editorRef.current?.updateOptions({ lineNumbers: next ? "on" : "off" });
         return next;
       });
+      setPaletteOpen(false);
+      return;
+    }
+    if (id === "editor:toggleWorld") {
+      setShowWorld((v) => !v);
       setPaletteOpen(false);
       return;
     }
@@ -970,7 +984,7 @@ export default function HomePage() {
         {/* ---- Main: Editor + World placeholder (split horizontally) ---- */}
         <main ref={mainRef} className="flex min-h-0" style={{ flex: `${100 - consolePct} 0 0%` }}>
           {/* Editor panel */}
-          <div className="min-w-0 overflow-hidden flex flex-col" style={{ width: `${editorWidthPct}%` }}>
+          <div className="min-w-0 overflow-hidden flex flex-col" style={{ width: showWorld ? `${editorWidthPct}%` : "100%" }}>
             <div className="flex-1 min-h-0">
               <MonacoEditor
                 language="lua"
@@ -1004,20 +1018,23 @@ export default function HomePage() {
             )}
           </div>
 
-          {/* Vertical drag handle */}
-          <div
-            onMouseDown={startHDrag}
-            onTouchStart={startHDrag}
-            className="w-3 cursor-col-resize hover:bg-blue-500 active:bg-blue-500 transition-colors shrink-0 touch-none"
-            style={{ backgroundColor: ui.handle }}
-          />
+          {/* Vertical drag handle + World panel (toggle via Cmd+Shift+P) */}
+          {showWorld && (
+            <>
+              <div
+                onMouseDown={startHDrag}
+                onTouchStart={startHDrag}
+                className="w-3 cursor-col-resize hover:bg-blue-500 active:bg-blue-500 transition-colors shrink-0 touch-none"
+                style={{ backgroundColor: ui.handle }}
+              />
 
-          {/* World placeholder (Phase 2) */}
-          <div className="flex-1 min-w-0 flex flex-col items-center justify-center select-none" style={{ backgroundColor: ui.surface2, color: ui.muted }}>
-            <div className="text-4xl mb-2">🌍</div>
-            <div className="text-sm">Isometric World</div>
-            <div className="text-xs mt-1">(Phase 2)</div>
-          </div>
+              <div className="flex-1 min-w-0 flex flex-col items-center justify-center select-none" style={{ backgroundColor: ui.surface2, color: ui.muted }}>
+                <div className="text-4xl mb-2">🌍</div>
+                <div className="text-sm">Isometric World</div>
+                <div className="text-xs mt-1">(Phase 2)</div>
+              </div>
+            </>
+          )}
         </main>
 
         {/* Horizontal drag handle */}
