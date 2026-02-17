@@ -36,20 +36,47 @@ const HATHI_DIR_FILES = [
 /*  Isometric constants                                               */
 /* ------------------------------------------------------------------ */
 
-// The SVG viewBox is "-80 -160 160 320" → tile diamond is 128×64 in the
-// coordinate system; the full SVG is 160×320 to leave room for tall objects.
-const ISO_TILE_W = 128; // diamond width  (2 * 64)
-const ISO_TILE_H = 64;  // diamond height (2 * 32)
+const ISO_TILE_W = 128; // diamond width  (2 × 64)
+const ISO_TILE_H = 64;  // diamond height (2 × 32)
 
-// SVG canvas dimensions – used for sprite sizing.
 const SVG_W = 160;
 const SVG_H = 320;
 
-/** Convert grid (row, col) → screen pixel (x, y) for isometric layout */
-function gridToScreen(row: number, col: number): { x: number; y: number } {
+/* ------------------------------------------------------------------ */
+/*  Isometric projection with 90° step rotation                       */
+/*                                                                    */
+/*  viewStep 0 = standard view                                        */
+/*  viewStep 1 = rotated 90° CW  (viewing from the right)             */
+/*  viewStep 2 = rotated 180°    (viewing from behind)                */
+/*  viewStep 3 = rotated 270° CW (viewing from the left)              */
+/*                                                                    */
+/*  At exact 90° multiples the rotated coords are still integers, so  */
+/*  the diamond tiles tessellate perfectly — no gaps.                  */
+/* ------------------------------------------------------------------ */
+
+function project(
+  row: number,
+  col: number,
+  centerRow: number,
+  centerCol: number,
+  viewStep: number,
+): { x: number; y: number; depth: number } {
+  const dr = row - centerRow;
+  const dc = col - centerCol;
+
+  // Rotate (dr, dc) by viewStep × 90° in the ground plane
+  let rr: number, rc: number;
+  switch (((viewStep % 4) + 4) % 4) {
+    case 1:  rr =  dc; rc = -dr; break;
+    case 2:  rr = -dr; rc = -dc; break;
+    case 3:  rr = -dc; rc =  dr; break;
+    default: rr =  dr; rc =  dc; break;
+  }
+
   return {
-    x: (col - row) * (ISO_TILE_W / 2),
-    y: (col + row) * (ISO_TILE_H / 2),
+    x: (rc - rr) * (ISO_TILE_W / 2),
+    y: (rc + rr) * (ISO_TILE_H / 2),
+    depth: rc + rr,
   };
 }
 
@@ -80,27 +107,92 @@ export default function IsometricWorld({
   const appRef = useRef<Application | null>(null);
   const worldContainerRef = useRef<Container | null>(null);
   const hathiSpriteRef = useRef<Sprite | null>(null);
-  const tileSpritesRef = useRef<Sprite[][]>([]);
   const texturesRef = useRef<Record<string, Texture>>({});
+
+  /** Grid dimensions for the current level */
+  const gridInfoRef = useRef({ rows: 0, cols: 0, centerRow: 0, centerCol: 0 });
 
   /* ready = true once PixiJS app is initialised AND textures are loaded */
   const [ready, setReady] = useState(false);
 
-  // Animation state
+  /* Current 90° view step (0–3). State so changes trigger grid rebuild. */
+  const [viewStep, setViewStep] = useState(0);
+
+  /* Zoom level multiplier (1 = fit-to-canvas) */
+  const zoomRef = useRef(1);
+
+  /* Hathi move animation state */
   const animRef = useRef<{
-    fromX: number;
-    fromY: number;
-    toX: number;
-    toY: number;
+    fromRow: number;
+    fromCol: number;
+    toRow: number;
+    toCol: number;
     progress: number;
     duration: number;
     active: boolean;
   }>({
-    fromX: 0, fromY: 0, toX: 0, toY: 0,
+    fromRow: 0, fromCol: 0, toRow: 0, toCol: 0,
     progress: 0, duration: 150, active: false,
   });
 
-  /* ---- Initialise PixiJS Application + load textures ---- */
+  /* Ref copy of viewStep so the ticker can read it synchronously */
+  const viewStepRef = useRef(0);
+  useEffect(() => { viewStepRef.current = viewStep; }, [viewStep]);
+
+  /* ---------------------------------------------------------------- */
+  /*  Fit world container into canvas (scale + centre)                */
+  /* ---------------------------------------------------------------- */
+
+  const applyFit = useCallback(() => {
+    const wc = worldContainerRef.current;
+    const app = appRef.current;
+    if (!wc || !app) return;
+
+    const { rows, cols, centerRow, centerCol } = gridInfoRef.current;
+    const step = viewStepRef.current;
+    const zoom = zoomRef.current;
+
+    const halfW = SVG_W / 2;
+    const halfH = SVG_H / 2;
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const p = project(r, c, centerRow, centerCol, step);
+        minX = Math.min(minX, p.x - halfW);
+        maxX = Math.max(maxX, p.x + halfW);
+        minY = Math.min(minY, p.y - halfH);
+        maxY = Math.max(maxY, p.y + halfH);
+      }
+    }
+
+    const gridW = maxX - minX || 1;
+    const gridH = maxY - minY || 1;
+    const canvasW = app.screen.width;
+    const canvasH = app.screen.height;
+
+    const padding = 20;
+    const baseScale = Math.min(
+      (canvasW - padding * 2) / gridW,
+      (canvasH - padding * 2) / gridH,
+      2,
+    );
+
+    const scale = baseScale * zoom;
+    const cx = (minX + maxX) / 2;
+    const cy = (minY + maxY) / 2;
+
+    wc.pivot.set(cx, cy);
+    wc.scale.set(scale);
+    wc.rotation = 0;
+    wc.x = canvasW / 2;
+    wc.y = canvasH / 2;
+  }, []);
+
+  /* ---------------------------------------------------------------- */
+  /*  Initialise PixiJS Application + load textures                   */
+  /* ---------------------------------------------------------------- */
+
   useEffect(() => {
     const div = containerRef.current;
     if (!div) return;
@@ -122,14 +214,12 @@ export default function IsometricWorld({
 
         div.appendChild(app.canvas);
 
-        // World container (we scale & position this to fit the grid)
         const wc = new Container();
         wc.sortableChildren = true;
         app.stage.addChild(wc);
         worldContainerRef.current = wc;
 
-        // Load all tile + hathi textures at high resolution so they stay
-        // crisp when the world container is scaled up.
+        // Load all tile + hathi textures at high resolution
         const svgRes = Math.max(window.devicePixelRatio || 1, 2) * 1.5;
         const loaded: Record<string, Texture> = {};
         for (const [code, file] of Object.entries(TILE_FILES)) {
@@ -159,7 +249,7 @@ export default function IsometricWorld({
 
         console.log(`[IsometricWorld] Loaded ${Object.keys(loaded).length} textures`);
 
-        // Ticker for animation
+        // Ticker for hathi move animation
         app.ticker.add(() => {
           const a = animRef.current;
           if (!a.active) return;
@@ -168,19 +258,23 @@ export default function IsometricWorld({
 
           a.progress += app.ticker.deltaMS;
           const t = Math.min(a.progress / a.duration, 1);
-          // ease-out quad
-          const ease = 1 - (1 - t) * (1 - t);
-          hs.x = a.fromX + (a.toX - a.fromX) * ease;
-          hs.y = a.fromY + (a.toY - a.fromY) * ease;
+          const ease = 1 - (1 - t) * (1 - t); // ease-out quad
+
+          const curRow = a.fromRow + (a.toRow - a.fromRow) * ease;
+          const curCol = a.fromCol + (a.toCol - a.fromCol) * ease;
+
+          const { centerRow, centerCol } = gridInfoRef.current;
+          const step = viewStepRef.current;
+          const p = project(curRow, curCol, centerRow, centerCol, step);
+          hs.x = p.x;
+          hs.y = p.y;
+          hs.zIndex = p.depth + 0.5;
 
           if (t >= 1) {
             a.active = false;
-            hs.x = a.toX;
-            hs.y = a.toY;
           }
         });
 
-        // Signal that we're ready to render levels
         setReady(true);
       } catch (err) {
         console.error("[IsometricWorld] Init failed:", err);
@@ -197,38 +291,39 @@ export default function IsometricWorld({
       appRef.current = null;
       worldContainerRef.current = null;
       hathiSpriteRef.current = null;
-      tileSpritesRef.current = [];
       texturesRef.current = {};
       setReady(false);
     };
   }, []);
 
-  /* ---- Build/rebuild the grid when level changes OR when ready ---- */
+  /* ---------------------------------------------------------------- */
+  /*  Build / rebuild the grid                                        */
+  /* ---------------------------------------------------------------- */
+
   const buildGrid = useCallback(
-    (lvl: string[], hRow: number, hCol: number, hDir: number) => {
+    (lvl: string[], hRow: number, hCol: number, hDir: number, step: number) => {
       const wc = worldContainerRef.current;
       const app = appRef.current;
       if (!wc || !app) return;
 
-      // Clear previous sprites
+      // Cancel any running hathi animation
+      animRef.current.active = false;
+
       wc.removeChildren();
-      tileSpritesRef.current = [];
       hathiSpriteRef.current = null;
 
       const rows = lvl.length;
       const cols = Math.max(...lvl.map((r) => r.length));
+      const centerRow = (rows - 1) / 2;
+      const centerCol = (cols - 1) / 2;
+      gridInfoRef.current = { rows, cols, centerRow, centerCol };
 
-      console.log(`[IsometricWorld] Building grid ${rows}×${cols}`);
-
-      // Create tile sprites
       for (let r = 0; r < rows; r++) {
-        const rowSprites: Sprite[] = [];
         for (let c = 0; c < cols; c++) {
           const ch = lvl[r]?.[c] ?? "g";
-          const pos = gridToScreen(r, c);
-          const zBase = r + c;
+          const p = project(r, c, centerRow, centerCol, step);
 
-          // If this is an object tile, place a grass base underneath first
+          // Grass base for object tiles
           if (OBJECT_TILES.has(ch)) {
             const grassTex = texturesRef.current["tile_g"];
             if (grassTex) {
@@ -236,109 +331,185 @@ export default function IsometricWorld({
               base.width = SVG_W;
               base.height = SVG_H;
               base.anchor.set(0.5, 0.5);
-              base.x = pos.x;
-              base.y = pos.y;
-              base.zIndex = zBase;
+              base.x = p.x;
+              base.y = p.y;
+              base.zIndex = p.depth;
               wc.addChild(base);
             }
           }
 
           const tex = texturesRef.current[`tile_${ch}`] ?? texturesRef.current["tile_g"];
-          if (!tex) {
-            console.warn(`[IsometricWorld] No texture for tile '${ch}' at (${r},${c})`);
-            continue;
-          }
+          if (!tex) continue;
 
           const sprite = new Sprite(tex);
           sprite.width = SVG_W;
           sprite.height = SVG_H;
           sprite.anchor.set(0.5, 0.5);
-          sprite.x = pos.x;
-          sprite.y = pos.y;
-          sprite.zIndex = OBJECT_TILES.has(ch) ? zBase + 0.1 : zBase;
-
+          sprite.x = p.x;
+          sprite.y = p.y;
+          const depOff = OBJECT_TILES.has(ch) ? 0.1 : 0;
+          sprite.zIndex = p.depth + depOff;
           wc.addChild(sprite);
-          rowSprites.push(sprite);
         }
-        tileSpritesRef.current.push(rowSprites);
       }
 
-      // Create hathi sprite
-      const hathiTex = texturesRef.current[`hathi_${hDir}`];
+      // Hathi sprite — adjust displayed direction for view rotation
+      const displayDir = ((hDir - step) % 4 + 4) % 4;
+      const hathiTex = texturesRef.current[`hathi_${displayDir}`];
       if (hathiTex) {
         const hs = new Sprite(hathiTex);
         hs.width = SVG_W;
         hs.height = SVG_H;
         hs.anchor.set(0.5, 0.5);
-        const pos = gridToScreen(hRow, hCol);
-        hs.x = pos.x;
-        hs.y = pos.y;
-        hs.zIndex = hRow + hCol + 0.5;
+        const hp = project(hRow, hCol, centerRow, centerCol, step);
+        hs.x = hp.x;
+        hs.y = hp.y;
+        hs.zIndex = hp.depth + 0.5;
         wc.addChild(hs);
         hathiSpriteRef.current = hs;
-      } else {
-        console.warn(`[IsometricWorld] No texture for hathi dir ${hDir}`);
+
+        // Sync animation ref so future moves start from correct position
+        animRef.current.toRow = hRow;
+        animRef.current.toCol = hCol;
       }
 
-      // Fit world to canvas
-      fitWorld(app, wc, rows, cols);
+      applyFit();
     },
-    []
+    [applyFit],
   );
 
-  /* Trigger grid build whenever level data OR ready state changes */
+  /* Trigger grid build whenever level, ready, or viewStep changes */
   useEffect(() => {
     if (!ready || !level) return;
-    buildGrid(level, hathiRow, hathiCol, hathiDir);
-    // We only want to rebuild on level change or initial ready, not on every
-    // hathi position change (that's handled by the animation effect below).
+    buildGrid(level, hathiRow, hathiCol, hathiDir, viewStep);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, level, buildGrid]);
+  }, [ready, level, viewStep, buildGrid]);
 
-  /* ---- Update hathi position / direction (animate) ---- */
+  /* ---------------------------------------------------------------- */
+  /*  Update hathi position / direction (animate)                     */
+  /* ---------------------------------------------------------------- */
+
   useEffect(() => {
     const hs = hathiSpriteRef.current;
     if (!hs) return;
 
-    // Update texture for direction
-    const hathiTex = texturesRef.current[`hathi_${hathiDir}`];
+    const step = viewStepRef.current;
+
+    // Update texture for direction (adjusted for view rotation)
+    const displayDir = ((hathiDir - step) % 4 + 4) % 4;
+    const hathiTex = texturesRef.current[`hathi_${displayDir}`];
     if (hathiTex) {
       hs.texture = hathiTex;
     }
 
-    // Animate to new position
-    const target = gridToScreen(hathiRow, hathiCol);
-    const a = animRef.current;
-    a.fromX = hs.x;
-    a.fromY = hs.y;
-    a.toX = target.x;
-    a.toY = target.y;
-    a.progress = 0;
-    a.duration = 150;
-    a.active = true;
+    // Determine start position
+    const fromRow = animRef.current.toRow;
+    const fromCol = animRef.current.toCol;
+    const moved = fromRow !== hathiRow || fromCol !== hathiCol;
 
-    // Update z-index
-    hs.zIndex = hathiRow + hathiCol + 0.5;
+    if (moved) {
+      const a = animRef.current;
+      a.fromRow = fromRow;
+      a.fromCol = fromCol;
+      a.toRow = hathiRow;
+      a.toCol = hathiCol;
+      a.progress = 0;
+      a.duration = 150;
+      a.active = true;
+    } else {
+      // Just snap position (e.g. direction change only)
+      const { centerRow, centerCol } = gridInfoRef.current;
+      const p = project(hathiRow, hathiCol, centerRow, centerCol, step);
+      hs.x = p.x;
+      hs.y = p.y;
+      hs.zIndex = p.depth + 0.5;
+      animRef.current.toRow = hathiRow;
+      animRef.current.toCol = hathiCol;
+    }
   }, [hathiRow, hathiCol, hathiDir]);
 
-  /* ---- Handle container resize ---- */
+  /* ---------------------------------------------------------------- */
+  /*  Handle container resize                                         */
+  /* ---------------------------------------------------------------- */
+
   useEffect(() => {
     const div = containerRef.current;
     const app = appRef.current;
-    const wc = worldContainerRef.current;
-    if (!div || !app || !wc || !level) return;
-
-    const rows = level.length;
-    const cols = Math.max(...level.map((r) => r.length));
+    if (!div || !app) return;
 
     const observer = new ResizeObserver(() => {
-      app.renderer.resize(div.clientWidth, div.clientHeight);
-      fitWorld(app, wc, rows, cols);
+      app.renderer?.resize(div.clientWidth, div.clientHeight);
+      applyFit();
     });
 
     observer.observe(div);
     return () => observer.disconnect();
-  }, [level, ready]);
+  }, [ready, applyFit]);
+
+  /* ---------------------------------------------------------------- */
+  /*  Mouse interaction: drag = rotate 90° steps, wheel = zoom        */
+  /* ---------------------------------------------------------------- */
+
+  useEffect(() => {
+    const div = containerRef.current;
+    if (!div) return;
+
+    let dragging = false;
+    let dragAccum = 0;
+    const DRAG_THRESHOLD = 60; // px needed to trigger a 90° step
+
+    const onPointerDown = (e: PointerEvent) => {
+      if (e.button !== 0) return;
+      dragging = true;
+      dragAccum = 0;
+      div.setPointerCapture(e.pointerId);
+      div.style.cursor = "grabbing";
+    };
+
+    const onPointerMove = (e: PointerEvent) => {
+      if (!dragging) return;
+
+      dragAccum += e.movementX;
+
+      // When accumulated drag exceeds threshold, fire a 90° step
+      if (dragAccum > DRAG_THRESHOLD) {
+        dragAccum -= DRAG_THRESHOLD;
+        setViewStep((s) => ((s - 1) % 4 + 4) % 4); // drag right → rotate CCW
+      } else if (dragAccum < -DRAG_THRESHOLD) {
+        dragAccum += DRAG_THRESHOLD;
+        setViewStep((s) => (s + 1) % 4);            // drag left → rotate CW
+      }
+    };
+
+    const onPointerUp = (e: PointerEvent) => {
+      if (!dragging) return;
+      dragging = false;
+      div.releasePointerCapture(e.pointerId);
+      div.style.cursor = "grab";
+    };
+
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+      zoomRef.current = Math.min(Math.max(zoomRef.current * zoomFactor, 0.3), 5);
+      applyFit();
+    };
+
+    div.style.cursor = "grab";
+    div.addEventListener("pointerdown", onPointerDown);
+    div.addEventListener("pointermove", onPointerMove);
+    div.addEventListener("pointerup", onPointerUp);
+    div.addEventListener("pointercancel", onPointerUp);
+    div.addEventListener("wheel", onWheel, { passive: false });
+
+    return () => {
+      div.removeEventListener("pointerdown", onPointerDown);
+      div.removeEventListener("pointermove", onPointerMove);
+      div.removeEventListener("pointerup", onPointerUp);
+      div.removeEventListener("pointercancel", onPointerUp);
+      div.removeEventListener("wheel", onWheel);
+    };
+  }, [applyFit]);
 
   return (
     <div
@@ -347,47 +518,4 @@ export default function IsometricWorld({
       style={{ backgroundColor: bgColor }}
     />
   );
-}
-
-/* ------------------------------------------------------------------ */
-/*  Helper: scale & centre the world container to fit the canvas      */
-/* ------------------------------------------------------------------ */
-
-function fitWorld(app: Application, wc: Container, rows: number, cols: number) {
-  const corners = [
-    gridToScreen(0, 0),
-    gridToScreen(0, cols - 1),
-    gridToScreen(rows - 1, 0),
-    gridToScreen(rows - 1, cols - 1),
-  ];
-
-  const halfW = SVG_W / 2;
-  const halfH = SVG_H / 2;
-
-  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-  for (const p of corners) {
-    minX = Math.min(minX, p.x - halfW);
-    maxX = Math.max(maxX, p.x + halfW);
-    minY = Math.min(minY, p.y - halfH);
-    maxY = Math.max(maxY, p.y + halfH);
-  }
-
-  const gridW = maxX - minX;
-  const gridH = maxY - minY;
-  const canvasW = app.screen.width;
-  const canvasH = app.screen.height;
-
-  const padding = 20;
-  const scale = Math.min(
-    (canvasW - padding * 2) / gridW,
-    (canvasH - padding * 2) / gridH,
-    2,
-  );
-
-  wc.scale.set(scale);
-
-  const cx = (minX + maxX) / 2;
-  const cy = (minY + maxY) / 2;
-  wc.x = canvasW / 2 - cx * scale;
-  wc.y = canvasH / 2 - cy * scale;
 }
