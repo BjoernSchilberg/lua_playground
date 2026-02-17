@@ -20,7 +20,7 @@ const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
   ),
 });
 
-// Dynamically import IsometricWorld (PixiJS needs browser APIs)
+// Dynamically import IsometricWorld (fetches SVGs at runtime)
 const IsometricWorld = dynamic(() => import("@/components/IsometricWorld"), {
   ssr: false,
   loading: () => (
