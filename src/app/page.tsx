@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import { LuaWorkerClient } from "@/lib/workerClient";
 import type { MsgFromWorker, WorkerState } from "@/lib/protocol";
 import { loadThemeList, fetchThemeData, isBuiltin, getThemeColors, type ThemeEntry } from "@/lib/monacoThemes";
-import CommandPalette, { type PaletteItem } from "@/components/CommandPalette";
+import CommandPalette, { type PaletteItem, type PaletteColors } from "@/components/CommandPalette";
 import basePath from "@/lib/basePath";
 import type { Monaco } from "@monaco-editor/react";
 import type { editor } from "monaco-editor";
@@ -1092,6 +1092,14 @@ export default function HomePage() {
         onSelect={handlePaletteSelect}
         onHighlight={handlePaletteHighlight}
         placeholder="Search commands…"
+        colors={{
+          bg: ui.surface2,
+          fg: ui.fg,
+          border: ui.border,
+          muted: ui.muted,
+          activeBg: "#2563eb",
+          activeFg: "#ffffff",
+        } satisfies PaletteColors}
       />
     </div>
   );

@@ -9,6 +9,15 @@ export interface PaletteItem {
   category?: string;
 }
 
+export interface PaletteColors {
+  bg: string;
+  fg: string;
+  border: string;
+  muted: string;
+  activeBg: string;
+  activeFg: string;
+}
+
 interface Props {
   open: boolean;
   onClose: () => void;
@@ -17,7 +26,18 @@ interface Props {
   /** Called whenever the highlighted (active) item changes */
   onHighlight?: (id: string) => void;
   placeholder?: string;
+  /** Theme-adaptive colors */
+  colors?: PaletteColors;
 }
+
+const DEFAULT_COLORS: PaletteColors = {
+  bg: "#1c2128",
+  fg: "#d4d4d4",
+  border: "#525252",
+  muted: "#737373",
+  activeBg: "#2563eb",
+  activeFg: "#ffffff",
+};
 
 export default function CommandPalette({
   open,
@@ -26,6 +46,7 @@ export default function CommandPalette({
   onSelect,
   onHighlight,
   placeholder = "Type to search…",
+  colors = DEFAULT_COLORS,
 }: Props) {
   const [query, setQuery] = useState("");
   const [activeIdx, setActiveIdx] = useState(0);
@@ -101,46 +122,51 @@ export default function CommandPalette({
     >
       {/* Palette panel */}
       <div
-        className="w-[480px] max-w-[90vw] bg-[#1c2128] border border-neutral-600 rounded-lg shadow-2xl flex flex-col overflow-hidden self-start"
+        className="w-[480px] max-w-[90vw] rounded-lg shadow-2xl flex flex-col overflow-hidden self-start"
+        style={{ backgroundColor: colors.bg, border: `1px solid ${colors.border}` }}
         onClick={(e) => e.stopPropagation()}
         onKeyDown={handleKey}
       >
         {/* Search input */}
-        <div className="px-3 py-2 border-b border-neutral-700">
+        <div className="px-3 py-2" style={{ borderBottom: `1px solid ${colors.border}` }}>
           <input
             ref={inputRef}
             type="text"
             value={query}
             onChange={(e) => { setQuery(e.target.value); setActiveIdx(0); }}
             placeholder={placeholder}
-            className="w-full bg-transparent text-sm text-neutral-200 outline-none placeholder:text-neutral-500"
+            className="w-full bg-transparent text-sm outline-none"
+            style={{ color: colors.fg }}
           />
         </div>
 
         {/* Results */}
         <div ref={listRef} className="max-h-72 overflow-y-auto py-1">
           {filtered.length === 0 && (
-            <div className="px-3 py-2 text-sm text-neutral-500">No matches</div>
+            <div className="px-3 py-2 text-sm" style={{ color: colors.muted }}>No matches</div>
           )}
-          {filtered.map((item, i) => (
-            <div
-              key={item.id}
-              onMouseEnter={() => setActiveIdx(i)}
-              onClick={() => { onSelect(item.id); onClose(); }}
-              className={`px-3 py-1.5 text-sm cursor-pointer flex items-center gap-2 ${
-                i === activeIdx
-                  ? "bg-blue-600 text-white"
-                  : "text-neutral-300 hover:bg-neutral-700"
-              }`}
-            >
-              {item.category && (
-                <span className={`text-xs ${i === activeIdx ? "text-blue-200" : "text-neutral-500"}`}>
-                  {item.category}:
-                </span>
-              )}
-              <span>{item.label}</span>
-            </div>
-          ))}
+          {filtered.map((item, i) => {
+            const isActive = i === activeIdx;
+            return (
+              <div
+                key={item.id}
+                onMouseEnter={() => setActiveIdx(i)}
+                onClick={() => { onSelect(item.id); onClose(); }}
+                className="px-3 py-1.5 text-sm cursor-pointer flex items-center gap-2"
+                style={{
+                  backgroundColor: isActive ? colors.activeBg : "transparent",
+                  color: isActive ? colors.activeFg : colors.fg,
+                }}
+              >
+                {item.category && (
+                  <span className="text-xs" style={{ color: isActive ? colors.activeFg : colors.muted, opacity: isActive ? 0.7 : 1 }}>
+                    {item.category}:
+                  </span>
+                )}
+                <span>{item.label}</span>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
