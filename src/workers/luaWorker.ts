@@ -198,25 +198,38 @@ function tick() {
       return;
     }
 
-    // Lua-level yield – read the value and pop it
-    const yieldVal = bridge.tostring(co, -1);
-    bridge.pop(co, nresults);
+    // Lua-level yield – read the values and pop them
+    // coroutine.yield(tag, ...) pushes values on the stack:
+    //   stack[-nresults] = tag, stack[-nresults+1] = arg1, ...
+    const yieldTag = bridge.tostring(co, -nresults);
 
-    if (yieldVal && yieldVal.startsWith("__sleep:")) {
+    if (yieldTag === "__stdout") {
+      // print / io.write yielded text as second argument
+      const text = nresults >= 2 ? (bridge.tostring(co, -nresults + 1) ?? "") : "";
+      bridge.pop(co, nresults);
+      post({ type: "STDOUT", text });
+      scheduleTick();
+      return;
+    }
+
+    if (yieldTag && yieldTag.startsWith("__sleep:")) {
       // Sleep request – resume after the requested delay
-      const ms = parseInt(yieldVal.slice(8), 10) || 0;
+      const ms = parseInt(yieldTag.slice(8), 10) || 0;
+      bridge.pop(co, nresults);
       schedulerTimer = setTimeout(tick, ms);
       return;
     }
 
-    if (yieldVal === "__stdin") {
+    if (yieldTag === "__stdin") {
       // Lua wants input – wait for STDIN_SUBMIT from UI
+      bridge.pop(co, nresults);
       waitingInput = true;
       post({ type: "STATUS", state: "waiting_input" });
       return;
     }
 
     // Unknown yield – treat as slice
+    bridge.pop(co, nresults);
     scheduleTick();
     return;
   }

@@ -81,21 +81,23 @@ static int l_bridge_stdin_req(lua_State *L) {
 /* ------------------------------------------------------------------ */
 
 static const char *BOOTSTRAP_LUA =
-    /* ---- print ---- */
-    "local _write = __bridge_write\n"
+    /* ---- print (pure Lua – yields to host, no C frames on stack) ---- */
     "print = function(...)\n"
-    "  local args = {...}\n"
+    "  local parts = {}\n"
     "  for i = 1, select('#', ...) do\n"
-    "    if i > 1 then _write('\\t') end\n"
-    "    _write(tostring(args[i]))\n"
+    "    if i > 1 then parts[#parts+1] = '\\t' end\n"
+    "    parts[#parts+1] = tostring(select(i, ...))\n"
     "  end\n"
-    "  _write('\\n')\n"
+    "  parts[#parts+1] = '\\n'\n"
+    "  coroutine.yield('__stdout', table.concat(parts))\n"
     "end\n"
-    /* ---- io.write ---- */
+    /* ---- io.write (pure Lua – yields to host) ---- */
     "io.write = function(...)\n"
+    "  local parts = {}\n"
     "  for i = 1, select('#', ...) do\n"
-    "    _write(tostring(select(i, ...)))\n"
+    "    parts[#parts+1] = tostring(select(i, ...))\n"
     "  end\n"
+    "  coroutine.yield('__stdout', table.concat(parts))\n"
     "end\n"
     /* ---- io.read (pure Lua – safe to yield) ---- */
     "local _spop = __bridge_stdin_pop\n"
