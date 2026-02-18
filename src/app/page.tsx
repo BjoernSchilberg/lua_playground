@@ -330,7 +330,7 @@ export default function HomePage() {
           <div
             onMouseDown={resize.startVDrag}
             onTouchStart={resize.startVDrag}
-            className="h-3 cursor-row-resize hover:bg-blue-500 active:bg-blue-500 transition-colors shrink-0 touch-none"
+            className="h-1.5 cursor-row-resize hover:!bg-blue-500 active:!bg-blue-500 transition-colors shrink-0 touch-none"
             style={{ backgroundColor: ui.handle }}
           />
 
@@ -356,7 +356,7 @@ export default function HomePage() {
           <div
             onMouseDown={resize.startHDrag}
             onTouchStart={resize.startHDrag}
-            className="w-3 cursor-col-resize hover:bg-blue-500 active:bg-blue-500 transition-colors shrink-0 touch-none"
+            className="w-1.5 cursor-col-resize hover:!bg-blue-500 active:!bg-blue-500 transition-colors shrink-0 touch-none"
             style={{ backgroundColor: ui.handle }}
           />
           <IsometricWorld
