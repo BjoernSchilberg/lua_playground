@@ -49,7 +49,10 @@ export default function TutorialPage() {
           <MarkdownPanel
             src={entry.file}
             ui={ctx.ui}
-            onLoadCode={ctx.setCode}
+            onLoadCode={(code) => {
+              const trimmed = ctx.code.trimEnd();
+              ctx.setCode(trimmed ? trimmed + "\n\n" + code : code);
+            }}
             navPrev={prevEntry ? { title: prevEntry.title, onNavigate: goPrev } : null}
             navNext={nextEntry ? { title: nextEntry.title, onNavigate: goNext } : null}
             toc={manifest ? manifest.map((m, i) => ({
