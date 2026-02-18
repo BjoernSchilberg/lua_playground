@@ -1,7 +1,12 @@
 [
-  {
-    "slug": "einfuehrung-lua01",
-    "title": "Einführung in Lua",
-    "file": "einfuehrung_lua01.md"
-  }
+    {
+        "slug": "einfuehrung-lua01",
+        "title": "Einführung in Lua",
+        "file": "einfuehrung_lua01.md"
+    },
+    {
+        "slug": "einfuehrung-lua02",
+        "title": "Funktionsaufrufe und Rückgabewerte",
+        "file": "einfuehrung_lua02.md"
+    }
 ]

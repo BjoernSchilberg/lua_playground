@@ -1,37 +1,30 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useEffect, useState, useCallback } from "react";
 import PlaygroundLayout from "@/components/PlaygroundLayout";
 import MarkdownPanel, { type TutorialEntry } from "@/components/MarkdownPanel";
 import basePath from "@/lib/basePath";
 
-export default function TutorialClient() {
-  const params = useParams<{ slug: string }>();
-  const slug = params.slug;
-
+export default function TutorialPage() {
   const [manifest, setManifest] = useState<TutorialEntry[] | null>(null);
+  const [currentIdx, setCurrentIdx] = useState(0);
 
   useEffect(() => {
     fetch(`${basePath}/tutorial/manifest.json`)
       .then((r) => r.json())
-      .then(setManifest)
+      .then((data: TutorialEntry[]) => {
+        setManifest(data);
+        setCurrentIdx(0);
+      })
       .catch(() => setManifest([]));
   }, []);
 
-  /* Find current, previous, next entries */
-  const idx = manifest?.findIndex((e) => e.slug === slug) ?? -1;
-  const entry = manifest && idx >= 0 ? manifest[idx] : null;
-  const navPrev = manifest && idx > 0 ? manifest[idx - 1] : null;
-  const navNext = manifest && idx >= 0 && idx < (manifest?.length ?? 0) - 1 ? manifest[idx + 1] : null;
+  const goNext = useCallback(() => setCurrentIdx((i) => i + 1), []);
+  const goPrev = useCallback(() => setCurrentIdx((i) => i - 1), []);
 
-  if (manifest && !entry) {
-    return (
-      <div className="flex items-center justify-center h-dvh text-neutral-500 font-mono">
-        Tutorial &quot;{slug}&quot; nicht gefunden.
-      </div>
-    );
-  }
+  const entry = manifest && manifest.length > 0 ? manifest[currentIdx] : null;
+  const prevEntry = manifest && currentIdx > 0 ? manifest[currentIdx - 1] : null;
+  const nextEntry = manifest && currentIdx < (manifest?.length ?? 0) - 1 ? manifest[currentIdx + 1] : null;
 
   return (
     <PlaygroundLayout
@@ -42,15 +35,15 @@ export default function TutorialClient() {
             src={entry.file}
             ui={ctx.ui}
             onLoadCode={ctx.setCode}
-            navPrev={navPrev}
-            navNext={navNext}
+            navPrev={prevEntry ? { title: prevEntry.title, onNavigate: goPrev } : null}
+            navNext={nextEntry ? { title: nextEntry.title, onNavigate: goNext } : null}
           />
         ) : (
           <div
             className="flex-1 flex items-center justify-center min-w-0 h-full"
             style={{ backgroundColor: ctx.ui.surface2, color: ctx.ui.muted }}
           >
-            Lade Tutorial…
+            {manifest === null ? "Lade Tutorial…" : "Kein Tutorial gefunden."}
           </div>
         )
       }

@@ -43,11 +43,9 @@ export interface MarkdownPanelProps {
   ui: UiColors;
   /** Called when user clicks "In Editor laden" on a Lua code block */
   onLoadCode: (code: string) => void;
-  /** Navigation to previous/next tutorial */
-  navPrev?: TutorialEntry | null;
-  navNext?: TutorialEntry | null;
-  /** Base URL for navigation links (default: "tutorial") */
-  navBase?: string;
+  /** Navigation callbacks + labels */
+  navPrev?: { title: string; onNavigate: () => void } | null;
+  navNext?: { title: string; onNavigate: () => void } | null;
 }
 
 /* ------------------------------------------------------------------ */
@@ -60,7 +58,6 @@ export default function MarkdownPanel({
   onLoadCode,
   navPrev,
   navNext,
-  navBase = "tutorial",
 }: MarkdownPanelProps) {
   const [markdown, setMarkdown] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -128,17 +125,18 @@ export default function MarkdownPanel({
     },
   };
 
-  /* Navigation link helper */
-  const navLink = (entry: TutorialEntry | null | undefined, label: string, align: "left" | "right") => {
-    if (!entry) return <span />;
+  /* Navigation button helper */
+  const navBtn = (nav: { title: string; onNavigate: () => void } | null | undefined, label: string, align: "left" | "right") => {
+    if (!nav) return <span />;
     return (
-      <a
-        href={`${basePath}/${navBase}/${entry.slug}`}
+      <button
+        type="button"
+        onClick={nav.onNavigate}
         className="md-nav-link"
-        style={{ textAlign: align }}
+        style={{ textAlign: align, background: "none", border: "none", cursor: "pointer", padding: 0, font: "inherit" }}
       >
-        {align === "left" ? `← ${label}: ${entry.title}` : `${label}: ${entry.title} →`}
-      </a>
+        {align === "left" ? `\u2190 ${label}: ${nav.title}` : `${label}: ${nav.title} \u2192`}
+      </button>
     );
   };
 
@@ -164,8 +162,8 @@ export default function MarkdownPanel({
       {/* Navigation top */}
       {(navPrev || navNext) && (
         <div className="md-nav-bar" style={{ borderBottom: `1px solid ${ui.border}` }}>
-          {navLink(navPrev, "Zurück", "left")}
-          {navLink(navNext, "Weiter", "right")}
+          {navBtn(navPrev, "Zurück", "left")}
+          {navBtn(navNext, "Weiter", "right")}
         </div>
       )}
 
@@ -195,8 +193,8 @@ export default function MarkdownPanel({
       {/* Navigation bottom */}
       {(navPrev || navNext) && (
         <div className="md-nav-bar" style={{ borderTop: `1px solid ${ui.border}` }}>
-          {navLink(navPrev, "Zurück", "left")}
-          {navLink(navNext, "Weiter", "right")}
+          {navBtn(navPrev, "Zurück", "left")}
+          {navBtn(navNext, "Weiter", "right")}
         </div>
       )}
     </div>
