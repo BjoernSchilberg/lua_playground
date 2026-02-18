@@ -100,7 +100,26 @@ pizza_backen()
 
 Schreibe eine eigene Funktion `tee_kochen()`, welche die Zubereitungsschritte einer Tasse Tee in den drei Schritten „Wasser kochen“, „Teebeutel in Tasse hängen“ und „Wasser aufgießen“ nach dem Muster unserer Pizza-Funktion beschreibt. Führe die Funktion drei Mal aus.
 
-**▽ Lösung (Platzhalter)**
+<details>
+<summary>▽ Lösung</summary>
+
+```lua
+function teig_zubereiten()
+  print("Wasser, Mehl, Hefe, Öl und Salz in Schüssel geben")
+  print("Zutaten rühren")
+  print("Den Teig gehen lassen")
+end
+ 
+function pizza_backen()
+  teig_zubereiten()
+  print("Teig ausrollen")
+  print("Tomatensoße hinzu")
+  print("geriebenen Käse hinzu")
+  print("backen")
+end
+```
+
+</details>
 
 ---
 
@@ -120,7 +139,26 @@ Schreibe eine Funktion `teig_zubereiten()`, welche die Beschreibung der Zubereit
 
 Rufe diese Funktion innerhalb der Funktion `pizza_backen()` auf, bevor der Teig ausgerollt wird.
 
-**▽ Lösung (Platzhalter)**
+<details>
+<summary>▽ Lösung</summary>
+
+```lua
+function teig_zubereiten()
+  print("Wasser, Mehl, Hefe, Öl und Salz in Schüssel geben")
+  print("Zutaten rühren")
+  print("Den Teig gehen lassen")
+end
+ 
+function pizza_backen()
+  teig_zubereiten()
+  print("Teig ausrollen")
+  print("Tomatensoße hinzu")
+  print("geriebenen Käse hinzu")
+  print("backen")
+end
+```
+
+</details>
 
 ---
 
@@ -163,7 +201,12 @@ Wie können wir den Fehler verhindern, wenn jemand eine einfache Margherita ohne
 
 Tipps: Du brauchst `if`, und `nil` wird wie `false` bewertet.
 
-**▽ Lösung (Platzhalter)**
+<details>
+<summary>▽ Lösung (Platzhalter)</summary>
+
+*Noch keine Lösung vorhanden.*
+
+</details>
 
 ---
 
@@ -171,7 +214,12 @@ Tipps: Du brauchst `if`, und `nil` wird wie `false` bewertet.
 
 Schreibe eine Funktion, die **zwei** Extrabeläge auf die Pizza bringen kann. Hinweis: mehrere Argumente werden mit Kommas getrennt.
 
-**▽ Lösung (Platzhalter)**
+<details>
+<summary>▽ Lösung (Platzhalter)</summary>
+
+*Noch keine Lösung vorhanden.*
+
+</details>
 
 ---
 
@@ -219,7 +267,12 @@ Schreibe nach dem Muster von `plus_sieben()` folgende Funktionen und teste sie:
 - `mal_zehn()`
 - `geteilt_durch_drei()`
 
-**▽ Lösung (Platzhalter)**
+<details>
+<summary>▽ Lösung (Platzhalter)</summary>
+
+*Noch keine Lösung vorhanden.*
+
+</details>
 
 ---
 
@@ -227,7 +280,12 @@ Schreibe nach dem Muster von `plus_sieben()` folgende Funktionen und teste sie:
 
 Schreibe eine Funktion, die `true` zurückliefert, wenn das Argument `x` eine Zahl ist (`type(x) == "number"`), sonst `false`. Teste die Funktion.
 
-**▽ Lösung (Platzhalter)**
+<details>
+<summary>▽ Lösung (Platzhalter)</summary>
+
+*Noch keine Lösung vorhanden.*
+
+</details>
 
 ---
 
@@ -235,7 +293,12 @@ Schreibe eine Funktion, die `true` zurückliefert, wenn das Argument `x` eine Za
 
 Schreibe eine Funktion `ist_dazwischen(wert, von, bis)`, die `true` zurückgibt, wenn `wert` genau zwischen `von` und `bis` ist, sonst `false`.
 
-**▽ Lösung (Platzhalter)**
+<details>
+<summary>▽ Lösung (Platzhalter)</summary>
+
+*Noch keine Lösung vorhanden.*
+
+</details>
 
 ---
 
@@ -292,7 +355,12 @@ end
 
 Schreibe eine Funktion `zahl_eingeben()`. Sie soll ungültige Eingaben (die sich nicht mit `tonumber()` in eine Zahl umwandeln lassen) abfangen und so lange nachfragen, bis eine gültige Zahl eingegeben wurde. Diese soll dann als Zahl zurückgeliefert werden.
 
-**▽ Lösung (Platzhalter)**
+<details>
+<summary>▽ Lösung (Platzhalter)</summary>
+
+*Noch keine Lösung vorhanden.*
+
+</details>
 
 ---
 

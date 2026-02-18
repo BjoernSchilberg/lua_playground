@@ -5,6 +5,7 @@ import React from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
+import rehypeRaw from "rehype-raw";
 import basePath from "@/lib/basePath";
 import type { UiColors } from "@/lib/uiColors";
 
@@ -364,7 +365,7 @@ export default function MarkdownPanel({
           <div className={`markdown-body ${ui.isDark ? "hljs-dark" : "hljs-light"}`}>
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
-              rehypePlugins={[rehypeHighlight]}
+              rehypePlugins={[rehypeRaw, rehypeHighlight]}
               components={components}
             >
               {markdown}

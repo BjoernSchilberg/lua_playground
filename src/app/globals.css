@@ -142,6 +142,42 @@ body {
   color: var(--md-muted);
 }
 
+/* ---- Collapsible solutions (<details>) ---- */
+.markdown-body details {
+  margin: 0.8em 0;
+  border: 1px solid var(--md-border);
+  border-radius: 6px;
+  padding: 0;
+}
+
+.markdown-body details summary {
+  cursor: pointer;
+  font-weight: 600;
+  padding: 0.5em 1em;
+  list-style: none;
+  color: var(--md-link);
+  user-select: none;
+}
+
+.markdown-body details summary::-webkit-details-marker,
+.markdown-body details summary::marker {
+  display: none;
+}
+
+.markdown-body details summary:hover {
+  background: color-mix(in srgb, var(--md-link) 8%, transparent);
+  border-radius: 6px;
+}
+
+.markdown-body details[open] summary {
+  border-bottom: 1px solid var(--md-border);
+  border-radius: 6px 6px 0 0;
+}
+
+.markdown-body details > :not(summary) {
+  padding: 0 1em;
+}
+
 /* ---- Inline code ---- */
 .markdown-body .md-inline-code,
 .markdown-body code:not([class]) {
