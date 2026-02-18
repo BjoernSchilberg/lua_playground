@@ -287,31 +287,31 @@ export default function HomePage() {
   const { ui } = theme;
 
   return (
-    <div className="flex flex-col h-dvh font-mono transition-colors duration-200" style={{ backgroundColor: ui.bg, color: ui.fg }}>
-      <Toolbar
-        code={code}
-        setCode={setCode}
-        currentFileName={currentFileName}
-        setCurrentFileName={setCurrentFileName}
-        ready={worker.ready}
-        isBusy={isBusy}
-        isPaused={isPaused}
-        status={worker.status}
-        ui={ui}
-        onRun={worker.handleRun}
-        onStep={worker.handleStep}
-        onContinue={worker.handleContinue}
-        onStop={worker.handleStop}
-        onReset={worker.handleReset}
-        onPaletteOpen={theme.openPalette}
-        fileInputRef={fileInputRef}
-      />
+    <div ref={resize.containerRef} className="flex h-dvh font-mono transition-colors duration-200" style={{ backgroundColor: ui.bg, color: ui.fg }}>
 
-      {/* ---- Content area: left (editor+console) | right (world) ---- */}
-      <div ref={resize.containerRef} className="flex flex-1 min-h-0">
+      {/* ---- Left column: Toolbar + Editor + Console ---- */}
+      <div className="flex flex-col min-h-0 min-w-0" style={{ width: worker.showWorld ? `${resize.editorWidthPct}%` : "100%" }}>
+        <Toolbar
+          code={code}
+          setCode={setCode}
+          currentFileName={currentFileName}
+          setCurrentFileName={setCurrentFileName}
+          ready={worker.ready}
+          isBusy={isBusy}
+          isPaused={isPaused}
+          status={worker.status}
+          ui={ui}
+          onRun={worker.handleRun}
+          onStep={worker.handleStep}
+          onContinue={worker.handleContinue}
+          onStop={worker.handleStop}
+          onReset={worker.handleReset}
+          onPaletteOpen={theme.openPalette}
+          fileInputRef={fileInputRef}
+        />
 
-        {/* ---- Left column: Editor + Console ---- */}
-        <div ref={resize.leftColRef} className="flex flex-col min-h-0 min-w-0" style={{ width: worker.showWorld ? `${resize.editorWidthPct}%` : "100%" }}>
+        {/* Editor + Console area (for VDrag height measurement) */}
+        <div ref={resize.leftColRef} className="flex flex-col min-h-0 flex-1">
 
           {/* Editor panel */}
           <div className="min-w-0 overflow-hidden flex flex-col min-h-0" style={{ flex: `${100 - resize.consolePct} 0 0%` }}>
@@ -348,26 +348,26 @@ export default function HomePage() {
             />
           </div>
         </div>
-
-        {/* Drag handle + World panel */}
-        {worker.showWorld && (
-          <>
-            <div
-              onMouseDown={resize.startHDrag}
-              onTouchStart={resize.startHDrag}
-              className="w-3 cursor-col-resize hover:bg-blue-500 active:bg-blue-500 transition-colors shrink-0 touch-none"
-              style={{ backgroundColor: ui.handle }}
-            />
-            <IsometricWorld
-              level={worker.worldLevel}
-              hathiRow={worker.hathiPos.row}
-              hathiCol={worker.hathiPos.col}
-              hathiDir={worker.hathiPos.dir}
-              bgColor={ui.surface2}
-            />
-          </>
-        )}
       </div>
+
+      {/* Drag handle + World panel */}
+      {worker.showWorld && (
+        <>
+          <div
+            onMouseDown={resize.startHDrag}
+            onTouchStart={resize.startHDrag}
+            className="w-3 cursor-col-resize hover:bg-blue-500 active:bg-blue-500 transition-colors shrink-0 touch-none"
+            style={{ backgroundColor: ui.handle }}
+          />
+          <IsometricWorld
+            level={worker.worldLevel}
+            hathiRow={worker.hathiPos.row}
+            hathiCol={worker.hathiPos.col}
+            hathiDir={worker.hathiPos.dir}
+            bgColor={ui.surface2}
+          />
+        </>
+      )}
 
       {/* ---- Command Palette ---- */}
       <CommandPalette
