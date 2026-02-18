@@ -8,7 +8,7 @@ hathi.loadLevel({
   "ggggggg",
   "gwHgwFg",
   "ggggggg",
-  "grgogsg",
+  "grgggsg",
   "ggggggg",
 })
 

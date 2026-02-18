@@ -12,3 +12,10 @@ print("Hathi startet!")
 
 -- Vorwärts gehen
 hathi.forward()
+for i = 1, 5 do
+	hathi.forward()
+	hathi.turnLeft()
+	print("Hathi dreht sich!")
+end
+
+print("Hathi hat fertig!")
