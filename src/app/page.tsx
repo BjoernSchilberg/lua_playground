@@ -45,6 +45,7 @@ const EXAMPLES: { name: string; file: string }[] = [
   { name: "Conway's Game of Life", file: `${basePath}/examples/conway.lua` },
   { name: "Beispiel für Eingabe", file: `${basePath}/examples/input.lua` },
   { name: "Lua in 15 Minutes", file: `${basePath}/examples/LearnLuaIn15min.lua` },
+  { name: "Caesar", file: `${basePath}/examples/caesar.lua` },
 ];
 
 /* ---- localStorage helpers ---- */
