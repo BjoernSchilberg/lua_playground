@@ -244,6 +244,14 @@ body {
   text-decoration: underline;
 }
 
+/* TOC dropdown item hover */
+.md-toc-item:hover {
+  background: color-mix(in srgb, var(--md-link) 15%, transparent) !important;
+}
+.md-toc-heading:hover {
+  color: var(--md-fg) !important;
+}
+
 /* ================================================================== */
 /*  highlight.js — scoped light/dark themes for code blocks           */
 /*  Based on GitHub Light & GitHub Dark themes                        */

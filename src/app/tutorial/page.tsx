@@ -2,19 +2,34 @@
 
 import { useEffect, useState, useCallback } from "react";
 import PlaygroundLayout from "@/components/PlaygroundLayout";
-import MarkdownPanel, { type TutorialEntry } from "@/components/MarkdownPanel";
+import MarkdownPanel, { type TutorialEntry, type TocHeading, parseHeadings } from "@/components/MarkdownPanel";
 import basePath from "@/lib/basePath";
 
 export default function TutorialPage() {
   const [manifest, setManifest] = useState<TutorialEntry[] | null>(null);
+  const [headingsMap, setHeadingsMap] = useState<Record<string, TocHeading[]>>({});
   const [currentIdx, setCurrentIdx] = useState(0);
 
   useEffect(() => {
     fetch(`${basePath}/tutorial/manifest.json`)
       .then((r) => r.json())
-      .then((data: TutorialEntry[]) => {
+      .then(async (data: TutorialEntry[]) => {
         setManifest(data);
         setCurrentIdx(0);
+        /* Fetch all markdown files in parallel and parse headings */
+        const entries = await Promise.all(
+          data.map(async (entry) => {
+            try {
+              const r = await fetch(`${basePath}/tutorial/${entry.file}`);
+              if (!r.ok) return [entry.file, []] as const;
+              const md = await r.text();
+              return [entry.file, parseHeadings(md)] as const;
+            } catch {
+              return [entry.file, []] as const;
+            }
+          }),
+        );
+        setHeadingsMap(Object.fromEntries(entries));
       })
       .catch(() => setManifest([]));
   }, []);
@@ -37,6 +52,12 @@ export default function TutorialPage() {
             onLoadCode={ctx.setCode}
             navPrev={prevEntry ? { title: prevEntry.title, onNavigate: goPrev } : null}
             navNext={nextEntry ? { title: nextEntry.title, onNavigate: goNext } : null}
+            toc={manifest ? manifest.map((m, i) => ({
+              title: m.title,
+              active: i === currentIdx,
+              onSelect: () => setCurrentIdx(i),
+              headings: headingsMap[m.file] ?? [],
+            })) : undefined}
           />
         ) : (
           <div

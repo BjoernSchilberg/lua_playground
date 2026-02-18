@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, type ComponentProps, type ReactNode } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo, type ComponentProps, type ReactNode } from "react";
 import React from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -21,6 +21,41 @@ function extractText(node: ReactNode): string {
     return extractText((node.props as { children?: ReactNode }).children);
   }
   return "";
+}
+
+/* ------------------------------------------------------------------ */
+/*  Heading slug & parser for TOC                                      */
+/* ------------------------------------------------------------------ */
+
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[`*_~]/g, "")
+    .replace(/[^\w\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+export interface TocHeading {
+  level: 2 | 3;
+  text: string;
+  id: string;
+}
+
+export function parseHeadings(md: string): TocHeading[] {
+  const result: TocHeading[] = [];
+  const regex = /^(#{2,3})\s+(.+)$/gm;
+  let match;
+  while ((match = regex.exec(md)) !== null) {
+    const level = match[1].length as 2 | 3;
+    const text = match[2]
+      .replace(/`([^`]*)`/g, "$1")
+      .replace(/\*\*([^*]*)\*\*/g, "$1")
+      .replace(/\*([^*]*)\*/g, "$1");
+    result.push({ level, text, id: slugify(text) });
+  }
+  return result;
 }
 
 /* ------------------------------------------------------------------ */
@@ -46,6 +81,10 @@ export interface MarkdownPanelProps {
   /** Navigation callbacks + labels */
   navPrev?: { title: string; onNavigate: () => void } | null;
   navNext?: { title: string; onNavigate: () => void } | null;
+  /** Full table of contents for hamburger menu */
+  toc?: { title: string; active: boolean; onSelect: () => void; headings?: TocHeading[] }[];
+  /** Called to scroll to a heading after navigating to a different doc */
+  onScrollToHeading?: (id: string) => void;
 }
 
 /* ------------------------------------------------------------------ */
@@ -58,22 +97,57 @@ export default function MarkdownPanel({
   onLoadCode,
   navPrev,
   navNext,
+  toc,
+  onScrollToHeading,
 }: MarkdownPanelProps) {
   const [markdown, setMarkdown] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [tocOpen, setTocOpen] = useState(false);
+  const tocRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const pendingScrollRef = useRef<string | null>(null);
+
+  /* Close TOC on outside click */
+  useEffect(() => {
+    if (!tocOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (tocRef.current && !tocRef.current.contains(e.target as Node)) {
+        setTocOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [tocOpen]);
 
   /* Fetch the .md file */
   useEffect(() => {
     setMarkdown(null);
     setError(null);
+    setTocOpen(false);
     fetch(`${basePath}/tutorial/${src}`)
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.text();
       })
-      .then(setMarkdown)
+      .then((text) => {
+        setMarkdown(text);
+        /* If a scroll-to-heading was requested (e.g. from TOC click on this doc), execute it */
+        if (pendingScrollRef.current) {
+          const id = pendingScrollRef.current;
+          pendingScrollRef.current = null;
+          requestAnimationFrame(() => {
+            const el = document.getElementById(id);
+            if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+          });
+        }
+      })
       .catch((e) => setError(e.message));
   }, [src]);
+
+  /* Handle deferred scroll request from parent (after doc switch) */
+  useEffect(() => {
+    if (onScrollToHeading) return; // managed via pendingScrollRef
+  }, [onScrollToHeading]);
 
   /* Stable callback ref for code blocks */
   const handleLoadCode = useCallback(
@@ -83,8 +157,23 @@ export default function MarkdownPanel({
     [onLoadCode],
   );
 
+  /* Scroll to a heading inside the content area */
+  const scrollToHeading = useCallback((id: string) => {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
+
   /* Custom components for ReactMarkdown */
   const components: ComponentProps<typeof ReactMarkdown>["components"] = {
+    // Give h2/h3 elements an id so we can scroll to them
+    h2({ children, ...rest }) {
+      const id = slugify(extractText(children));
+      return <h2 id={id} {...rest}>{children}</h2>;
+    },
+    h3({ children, ...rest }) {
+      const id = slugify(extractText(children));
+      return <h3 id={id} {...rest}>{children}</h3>;
+    },
     // Wrap fenced code blocks with a "load into editor" button
     pre({ children, ...rest }) {
       return (
@@ -160,15 +249,109 @@ export default function MarkdownPanel({
       }}
     >
       {/* Navigation top */}
-      {(navPrev || navNext) && (
-        <div className="md-nav-bar" style={{ borderBottom: `1px solid ${ui.border}` }}>
-          {navBtn(navPrev, "Zurück", "left")}
-          {navBtn(navNext, "Weiter", "right")}
-        </div>
-      )}
+      <div className="md-nav-bar" style={{ borderBottom: `1px solid ${ui.border}`, position: "relative" }}>
+        {/* Hamburger menu */}
+        {toc && toc.length > 0 && (
+          <div ref={tocRef} style={{ position: "relative" }}>
+            <button
+              type="button"
+              onClick={() => setTocOpen((v) => !v)}
+              className="md-nav-link"
+              style={{ background: "none", border: "none", cursor: "pointer", padding: "0 8px", font: "inherit", fontSize: 18, lineHeight: 1 }}
+              title="Inhaltsverzeichnis"
+            >
+              ☰
+            </button>
+            {tocOpen && (
+              <div
+                className="md-toc-dropdown themed-scrollbar"
+                style={{
+                  position: "absolute",
+                  top: "100%",
+                  left: 0,
+                  zIndex: 50,
+                  minWidth: 260,
+                  maxHeight: "60vh",
+                  overflowY: "auto",
+                  background: ui.surface,
+                  border: `1px solid ${ui.border}`,
+                  borderRadius: 6,
+                  boxShadow: "0 4px 16px rgba(0,0,0,0.25)",
+                  padding: "4px 0",
+                }}
+              >
+                {toc.map((item, i) => (
+                  <React.Fragment key={i}>
+                    <button
+                      type="button"
+                      onClick={() => { item.onSelect(); setTocOpen(false); }}
+                      className="md-toc-item"
+                      style={{
+                        display: "block",
+                        width: "100%",
+                        textAlign: "left",
+                        padding: "6px 14px",
+                        background: item.active ? (ui.isDark ? "#2563eb" : "#dbeafe") : "transparent",
+                        color: item.active ? (ui.isDark ? "#fff" : "#1e40af") : ui.fg,
+                        fontWeight: item.active ? 600 : 400,
+                        border: "none",
+                        cursor: "pointer",
+                        font: "inherit",
+                        fontSize: 14,
+                      }}
+                    >
+                      {item.title}
+                    </button>
+                    {/* Show headings for this document */}
+                    {item.headings && item.headings.map((h, j) => (
+                      <button
+                        key={`h-${j}`}
+                        type="button"
+                        onClick={() => {
+                          if (item.active) {
+                            /* Same doc: just scroll */
+                            scrollToHeading(h.id);
+                          } else {
+                            /* Different doc: navigate first, then scroll after load */
+                            pendingScrollRef.current = h.id;
+                            item.onSelect();
+                          }
+                          setTocOpen(false);
+                        }}
+                        className="md-toc-item md-toc-heading"
+                        style={{
+                          display: "block",
+                          width: "100%",
+                          textAlign: "left",
+                          paddingLeft: h.level === 2 ? 28 : 42,
+                          paddingRight: 14,
+                          paddingTop: 4,
+                          paddingBottom: 4,
+                          background: "transparent",
+                          color: ui.muted,
+                          fontWeight: 400,
+                          border: "none",
+                          cursor: "pointer",
+                          font: "inherit",
+                          fontSize: h.level === 2 ? 13 : 12,
+                        }}
+                      >
+                        {h.text}
+                      </button>
+                    ))}
+                  </React.Fragment>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+        {navBtn(navPrev, "Zurück", "left")}
+        <span style={{ flex: 1 }} />
+        {navBtn(navNext, "Weiter", "right")}
+      </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto themed-scrollbar px-6 py-4">
+      <div ref={contentRef} className="flex-1 overflow-y-auto themed-scrollbar px-6 py-4">
         {error && (
           <div className="text-red-500 p-4">
             Fehler beim Laden: {error}
