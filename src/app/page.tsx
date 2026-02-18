@@ -726,9 +726,9 @@ export default function HomePage() {
     const isTouch = "touches" in e;
     const startX = isTouch ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
     const startPct = editorWidthPct;
-    const main = mainRef.current;
-    if (!main) return;
-    const totalW = main.getBoundingClientRect().width;
+    const container = containerRef.current;
+    if (!container) return;
+    const totalW = container.getBoundingClientRect().width;
 
     const getX = (ev: MouseEvent | TouchEvent) =>
       "touches" in ev ? ev.touches[0].clientX : (ev as MouseEvent).clientX;
@@ -759,9 +759,9 @@ export default function HomePage() {
     const isTouch = "touches" in e;
     const startY = isTouch ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
     const startPct = consolePct;
-    const container = containerRef.current;
-    if (!container) return;
-    const totalH = container.getBoundingClientRect().height;
+    const leftCol = mainRef.current;
+    if (!leftCol) return;
+    const totalH = leftCol.getBoundingClientRect().height;
 
     const getY = (ev: MouseEvent | TouchEvent) =>
       "touches" in ev ? ev.touches[0].clientY : (ev as MouseEvent).clientY;
@@ -1192,13 +1192,14 @@ export default function HomePage() {
 
       </header>
 
-      {/* ---- Content area (main + console, split vertically) ---- */}
-      <div ref={containerRef} className="flex flex-col flex-1 min-h-0">
+      {/* ---- Content area: left (editor+console) | right (world) ---- */}
+      <div ref={containerRef} className="flex flex-1 min-h-0">
 
-        {/* ---- Main: Editor + World placeholder (split horizontally) ---- */}
-        <main ref={mainRef} className="flex min-h-0" style={{ flex: `${100 - consolePct} 0 0%` }}>
+        {/* ---- Left column: Editor + Console (stacked vertically) ---- */}
+        <div ref={mainRef} className="flex flex-col min-h-0 min-w-0" style={{ width: showWorld ? `${editorWidthPct}%` : "100%" }}>
+
           {/* Editor panel */}
-          <div className="min-w-0 overflow-hidden flex flex-col" style={{ width: showWorld ? `${editorWidthPct}%` : "100%" }}>
+          <div className="min-w-0 overflow-hidden flex flex-col min-h-0" style={{ flex: `${100 - consolePct} 0 0%` }}>
             <div className="flex-1 min-h-0">
               <MonacoEditor
                 language="lua"
@@ -1233,81 +1234,82 @@ export default function HomePage() {
             )}
           </div>
 
-          {/* Vertical drag handle + World panel (toggle via Cmd+Shift+P) */}
-          {showWorld && (
-            <>
-              <div
-                onMouseDown={startHDrag}
-                onTouchStart={startHDrag}
-                className="w-3 cursor-col-resize hover:bg-blue-500 active:bg-blue-500 transition-colors shrink-0 touch-none"
-                style={{ backgroundColor: ui.handle }}
+          {/* Horizontal drag handle (between editor and console) */}
+          <div
+            onMouseDown={startVDrag}
+            onTouchStart={startVDrag}
+            className="h-3 cursor-row-resize hover:bg-blue-500 active:bg-blue-500 transition-colors shrink-0 touch-none"
+            style={{ backgroundColor: ui.handle }}
+          />
+
+          {/* ---- Console ---- */}
+          <div className="flex flex-col min-h-0 transition-colors duration-200" style={{ flex: `${consolePct} 0 0%`, backgroundColor: ui.bg }}>
+            <div className="px-3 py-1 text-xs select-none transition-colors duration-200" style={{ backgroundColor: ui.surface, color: ui.muted, borderBottom: `1px solid ${ui.border}` }}>
+              Console
+            </div>
+            <pre
+              className="themed-scrollbar flex-1 px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap"
+              style={{
+                "--scrollbar-thumb": ui.handle,
+                "--scrollbar-thumb-hover": ui.border,
+              } as React.CSSProperties}
+            >
+              {consoleLines.map((line, i) => (
+                <span
+                  key={i}
+                  style={{ color: line.isError ? ui.consoleError : ui.consoleText }}
+                >
+                  {line.text}
+                </span>
+              ))}
+              <div ref={consoleEndRef} />
+            </pre>
+
+            {/* Input line */}
+            <form
+              onSubmit={handleInputSubmit}
+              className="flex items-center gap-2 px-3 py-1.5 transition-colors duration-200"
+              style={{ backgroundColor: ui.surface, borderTop: `1px solid ${ui.border}` }}
+            >
+              <span className="text-green-500 text-sm select-none">&gt;</span>
+              <input
+                ref={inputRef}
+                type="text"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                disabled={status !== "waiting_input"}
+                placeholder={
+                  status === "waiting_input"
+                    ? "Type input and press Enter…"
+                    : "Input disabled"
+                }
+                className="flex-1 bg-transparent outline-none text-sm placeholder:text-neutral-600 disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{ color: ui.fg }}
               />
-
-              <IsometricWorld
-                level={worldLevel}
-                hathiRow={hathiPos.row}
-                hathiCol={hathiPos.col}
-                hathiDir={hathiPos.dir}
-                bgColor={ui.surface2}
-              />
-            </>
-          )}
-        </main>
-
-        {/* Horizontal drag handle */}
-        <div
-          onMouseDown={startVDrag}
-          onTouchStart={startVDrag}
-          className="h-3 cursor-row-resize hover:bg-blue-500 active:bg-blue-500 transition-colors shrink-0 touch-none"
-          style={{ backgroundColor: ui.handle }}
-        />
-
-        {/* ---- Console ---- */}
-        <div className="flex flex-col min-h-0 transition-colors duration-200" style={{ flex: `${consolePct} 0 0%`, backgroundColor: ui.bg }}>
-          <div className="px-3 py-1 text-xs select-none transition-colors duration-200" style={{ backgroundColor: ui.surface, color: ui.muted, borderBottom: `1px solid ${ui.border}` }}>
-            Console
+            </form>
           </div>
-          <pre
-            className="themed-scrollbar flex-1 px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap"
-            style={{
-              "--scrollbar-thumb": ui.handle,
-              "--scrollbar-thumb-hover": ui.border,
-            } as React.CSSProperties}
-          >
-            {consoleLines.map((line, i) => (
-              <span
-                key={i}
-                style={{ color: line.isError ? ui.consoleError : ui.consoleText }}
-              >
-                {line.text}
-              </span>
-            ))}
-            <div ref={consoleEndRef} />
-          </pre>
 
-          {/* Input line */}
-          <form
-            onSubmit={handleInputSubmit}
-            className="flex items-center gap-2 px-3 py-1.5 transition-colors duration-200"
-            style={{ backgroundColor: ui.surface, borderTop: `1px solid ${ui.border}` }}
-          >
-            <span className="text-green-500 text-sm select-none">&gt;</span>
-            <input
-              ref={inputRef}
-              type="text"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              disabled={status !== "waiting_input"}
-              placeholder={
-                status === "waiting_input"
-                  ? "Type input and press Enter…"
-                  : "Input disabled"
-              }
-              className="flex-1 bg-transparent outline-none text-sm placeholder:text-neutral-600 disabled:opacity-40 disabled:cursor-not-allowed"
-              style={{ color: ui.fg }}
-            />
-          </form>
         </div>
+
+        {/* Vertical drag handle + World panel */}
+        {showWorld && (
+          <>
+            <div
+              onMouseDown={startHDrag}
+              onTouchStart={startHDrag}
+              className="w-3 cursor-col-resize hover:bg-blue-500 active:bg-blue-500 transition-colors shrink-0 touch-none"
+              style={{ backgroundColor: ui.handle }}
+            />
+
+            <IsometricWorld
+              level={worldLevel}
+              hathiRow={hathiPos.row}
+              hathiCol={hathiPos.col}
+              hathiDir={hathiPos.dir}
+              bgColor={ui.surface2}
+            />
+          </>
+        )}
 
       </div>
 
