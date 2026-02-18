@@ -71,3 +71,269 @@ body {
   width: 10px !important;
   height: 10px !important;
 }
+
+/* ================================================================== */
+/*  Markdown panel (.markdown-body) — adaptive via CSS custom props    */
+/*  Set --md-bg, --md-fg, --md-code-bg, --md-border, --md-muted,     */
+/*  --md-link, --md-btn-bg, --md-btn-fg, --md-btn-hover on the parent */
+/* ================================================================== */
+
+.markdown-body {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--md-fg);
+  max-width: 52rem;
+}
+
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4,
+.markdown-body h5,
+.markdown-body h6 {
+  margin-top: 1.6em;
+  margin-bottom: 0.6em;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.markdown-body h1 { font-size: 1.7em; border-bottom: 1px solid var(--md-border); padding-bottom: 0.3em; }
+.markdown-body h2 { font-size: 1.4em; border-bottom: 1px solid var(--md-border); padding-bottom: 0.25em; }
+.markdown-body h3 { font-size: 1.15em; }
+
+.markdown-body p {
+  margin: 0.8em 0;
+}
+
+.markdown-body a {
+  color: var(--md-link);
+  text-decoration: underline;
+}
+
+.markdown-body strong {
+  font-weight: 600;
+}
+
+.markdown-body ul,
+.markdown-body ol {
+  margin: 0.8em 0;
+  padding-left: 1.8em;
+}
+
+.markdown-body li {
+  margin: 0.3em 0;
+}
+
+.markdown-body li::marker {
+  color: var(--md-muted);
+}
+
+.markdown-body hr {
+  border: none;
+  border-top: 1px solid var(--md-border);
+  margin: 1.5em 0;
+}
+
+.markdown-body blockquote {
+  margin: 0.8em 0;
+  padding: 0.2em 1em;
+  border-left: 4px solid var(--md-border);
+  color: var(--md-muted);
+}
+
+/* ---- Inline code ---- */
+.markdown-body .md-inline-code,
+.markdown-body code:not([class]) {
+  background: var(--md-code-bg);
+  padding: 0.15em 0.4em;
+  border-radius: 4px;
+  font-size: 0.9em;
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+/* ---- Fenced code blocks ---- */
+.md-code-wrapper {
+  position: relative;
+  margin: 1em 0;
+}
+
+.markdown-body pre {
+  background: var(--md-code-bg);
+  border: 1px solid var(--md-border);
+  border-radius: 6px;
+  padding: 1em;
+  overflow-x: auto;
+  font-size: 0.88em;
+  line-height: 1.55;
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+.markdown-body pre code {
+  background: none;
+  padding: 0;
+  border-radius: 0;
+  font-size: inherit;
+}
+
+/* ---- "In Editor laden" button ---- */
+.md-load-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 10;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-family: system-ui, sans-serif;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  background: var(--md-btn-bg);
+  color: var(--md-btn-fg);
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s;
+}
+
+.md-code-wrapper:hover .md-load-btn {
+  opacity: 1;
+}
+
+.md-load-btn:hover {
+  background: var(--md-btn-hover);
+}
+
+/* ---- Tables (GFM) ---- */
+.markdown-body table {
+  border-collapse: collapse;
+  margin: 1em 0;
+  width: 100%;
+}
+
+.markdown-body th,
+.markdown-body td {
+  border: 1px solid var(--md-border);
+  padding: 0.5em 0.8em;
+  text-align: left;
+}
+
+.markdown-body th {
+  background: var(--md-code-bg);
+  font-weight: 600;
+}
+
+/* ---- Checklists (GFM) ---- */
+.markdown-body input[type="checkbox"] {
+  margin-right: 0.4em;
+}
+
+/* ---- Tutorial navigation bar ---- */
+.md-nav-bar {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5em 1em;
+  font-size: 14px;
+  font-family: system-ui, sans-serif;
+}
+
+.md-nav-link {
+  color: var(--md-link);
+  text-decoration: none;
+}
+
+.md-nav-link:hover {
+  text-decoration: underline;
+}
+
+/* ================================================================== */
+/*  highlight.js — scoped light/dark themes for code blocks           */
+/*  Based on GitHub Light & GitHub Dark themes                        */
+/* ================================================================== */
+
+pre code.hljs { display: block; overflow-x: auto; padding: 1em; }
+code.hljs { padding: 3px 5px; }
+
+/* ---- Light theme (default) ---- */
+.hljs-light .hljs { color: #24292e; }
+.hljs-light .hljs-doctag,
+.hljs-light .hljs-keyword,
+.hljs-light .hljs-meta .hljs-keyword,
+.hljs-light .hljs-template-tag,
+.hljs-light .hljs-template-variable,
+.hljs-light .hljs-type,
+.hljs-light .hljs-variable.language_ { color: #d73a49; }
+.hljs-light .hljs-title,
+.hljs-light .hljs-title.class_,
+.hljs-light .hljs-title.class_.inherited__,
+.hljs-light .hljs-title.function_ { color: #6f42c1; }
+.hljs-light .hljs-attr,
+.hljs-light .hljs-attribute,
+.hljs-light .hljs-literal,
+.hljs-light .hljs-meta,
+.hljs-light .hljs-number,
+.hljs-light .hljs-operator,
+.hljs-light .hljs-selector-attr,
+.hljs-light .hljs-selector-class,
+.hljs-light .hljs-selector-id,
+.hljs-light .hljs-variable { color: #005cc5; }
+.hljs-light .hljs-meta .hljs-string,
+.hljs-light .hljs-regexp,
+.hljs-light .hljs-string { color: #032f62; }
+.hljs-light .hljs-built_in,
+.hljs-light .hljs-symbol { color: #e36209; }
+.hljs-light .hljs-code,
+.hljs-light .hljs-comment,
+.hljs-light .hljs-formula { color: #6a737d; }
+.hljs-light .hljs-name,
+.hljs-light .hljs-quote,
+.hljs-light .hljs-selector-pseudo,
+.hljs-light .hljs-selector-tag { color: #22863a; }
+.hljs-light .hljs-subst { color: #24292e; }
+.hljs-light .hljs-section { color: #005cc5; font-weight: 700; }
+.hljs-light .hljs-bullet { color: #735c0f; }
+.hljs-light .hljs-emphasis { color: #24292e; font-style: italic; }
+.hljs-light .hljs-strong { color: #24292e; font-weight: 700; }
+.hljs-light .hljs-addition { color: #22863a; background-color: #f0fff4; }
+.hljs-light .hljs-deletion { color: #b31d28; background-color: #ffeef0; }
+
+/* ---- Dark theme ---- */
+.hljs-dark .hljs { color: #c9d1d9; }
+.hljs-dark .hljs-doctag,
+.hljs-dark .hljs-keyword,
+.hljs-dark .hljs-meta .hljs-keyword,
+.hljs-dark .hljs-template-tag,
+.hljs-dark .hljs-template-variable,
+.hljs-dark .hljs-type,
+.hljs-dark .hljs-variable.language_ { color: #ff7b72; }
+.hljs-dark .hljs-title,
+.hljs-dark .hljs-title.class_,
+.hljs-dark .hljs-title.class_.inherited__,
+.hljs-dark .hljs-title.function_ { color: #d2a8ff; }
+.hljs-dark .hljs-attr,
+.hljs-dark .hljs-attribute,
+.hljs-dark .hljs-literal,
+.hljs-dark .hljs-meta,
+.hljs-dark .hljs-number,
+.hljs-dark .hljs-operator,
+.hljs-dark .hljs-selector-attr,
+.hljs-dark .hljs-selector-class,
+.hljs-dark .hljs-selector-id,
+.hljs-dark .hljs-variable { color: #79c0ff; }
+.hljs-dark .hljs-meta .hljs-string,
+.hljs-dark .hljs-regexp,
+.hljs-dark .hljs-string { color: #a5d6ff; }
+.hljs-dark .hljs-built_in,
+.hljs-dark .hljs-symbol { color: #ffa657; }
+.hljs-dark .hljs-code,
+.hljs-dark .hljs-comment,
+.hljs-dark .hljs-formula { color: #8b949e; }
+.hljs-dark .hljs-name,
+.hljs-dark .hljs-quote,
+.hljs-dark .hljs-selector-pseudo,
+.hljs-dark .hljs-selector-tag { color: #7ee787; }
+.hljs-dark .hljs-subst { color: #c9d1d9; }
+.hljs-dark .hljs-section { color: #1f6feb; font-weight: 700; }
+.hljs-dark .hljs-bullet { color: #f2cc60; }
+.hljs-dark .hljs-emphasis { color: #c9d1d9; font-style: italic; }
+.hljs-dark .hljs-strong { color: #c9d1d9; font-weight: 700; }
+.hljs-dark .hljs-addition { color: #aff5b4; background-color: #033a16; }
+.hljs-dark .hljs-deletion { color: #ffdcd7; background-color: #67060c; }
