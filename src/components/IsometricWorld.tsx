@@ -208,33 +208,11 @@ export default function IsometricWorld({
   }, [hathiRow, hathiCol]);
 
   /* ---------------------------------------------------------------- */
-  /*  Mouse interaction: drag = rotate 90° steps, wheel = zoom        */
+  /*  Mouse interaction: wheel = zoom, compass click = rotate         */
   /* ---------------------------------------------------------------- */
 
-  const dragRef = useRef<{ startX: number; accum: number } | null>(null);
-
-  const onPointerDown = useCallback((e: React.PointerEvent) => {
-    if (e.button !== 0) return;
-    dragRef.current = { startX: e.clientX, accum: 0 };
-    (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
-  }, []);
-
-  const onPointerMove = useCallback((e: React.PointerEvent) => {
-    if (!dragRef.current) return;
-    const dx = e.clientX - dragRef.current.startX;
-    dragRef.current.accum = dx;
-  }, []);
-
-  const onPointerUp = useCallback(() => {
-    if (!dragRef.current) return;
-    const dx = dragRef.current.accum;
-    if (dx > 60) {
-      setViewStep((s) => (s + 1) % 4);            // drag right → rotate CW
-    } else if (dx < -60) {
-      setViewStep((s) => ((s - 1) % 4 + 4) % 4);  // drag left  → rotate CCW
-    }
-    dragRef.current = null;
-  }, []);
+  const rotateCW  = useCallback(() => setViewStep((s) => (s + 1) % 4), []);
+  const rotateCCW = useCallback(() => setViewStep((s) => ((s - 1) % 4 + 4) % 4), []);
 
   useEffect(() => {
     const div = containerRef.current;
@@ -387,11 +365,7 @@ export default function IsometricWorld({
     <div
       ref={containerRef}
       className="flex-1 min-w-0 h-full overflow-hidden relative"
-      style={{ backgroundColor: bgColor, cursor: "grab" }}
-      onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={onPointerUp}
-      onPointerCancel={onPointerUp}
+      style={{ backgroundColor: bgColor }}
     >
       <svg
         width="100%"
@@ -417,7 +391,7 @@ export default function IsometricWorld({
         {tilesAfter}
       </svg>
 
-      {/* Compass rose — bottom-right corner */}
+      {/* Compass rose — bottom-right corner, click to rotate */}
       <svg
         width="130"
         height="80"
@@ -426,8 +400,8 @@ export default function IsometricWorld({
           position: "absolute",
           right: 10,
           bottom: 10,
-          pointerEvents: "none",
           filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.4))",
+          cursor: "pointer",
         }}
       >
         {/* semi-transparent backdrop */}
@@ -436,9 +410,25 @@ export default function IsometricWorld({
           fill="rgba(0,0,0,0.45)"
         />
 
+        {/* Clickable left half → rotate CCW */}
+        <rect
+          x="-78" y="-36" width="78" height="72" rx="10" ry="10"
+          fill="transparent"
+          onClick={rotateCCW}
+          style={{ cursor: "pointer" }}
+        />
+        {/* Clickable right half → rotate CW */}
+        <rect
+          x="0" y="-36" width="78" height="72" rx="10" ry="10"
+          fill="transparent"
+          onClick={rotateCW}
+          style={{ cursor: "pointer" }}
+        />
+
         {/* isometric ellipse */}
         <ellipse cx="0" cy="0" rx="50" ry="25"
           fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1.5"
+          style={{ pointerEvents: "none" }}
         />
 
         {/* 4 arrow triangles + labels */}
@@ -446,14 +436,21 @@ export default function IsometricWorld({
           const label = COMPASS_DIRS[((i - viewStep) % 4 + 4) % 4];
           const isNorth = label === "N";
           const lp = COMPASS_LABEL_POS[i];
+          const isLeft = i >= 2; // arrows 2,3 are on the left side
           return (
-            <g key={i}>
+            <g
+              key={i}
+              onClick={isLeft ? rotateCCW : rotateCW}
+              style={{ cursor: "pointer" }}
+            >
               <path
                 d={d}
                 fill={isNorth ? "#e74c3c" : "rgba(255,255,255,0.5)"}
                 stroke={isNorth ? "#c0392b" : "rgba(255,255,255,0.15)"}
                 strokeWidth="1"
-              />
+              >
+                <set attributeName="fill" to="#3b82f6" begin="mouseover" end="mouseout" />
+              </path>
               <text
                 x={lp.x} y={lp.y}
                 textAnchor={lp.anchor}
@@ -462,6 +459,7 @@ export default function IsometricWorld({
                 fontWeight={isNorth ? "bold" : "normal"}
                 fontSize="16"
                 fontFamily="system-ui, sans-serif"
+                style={{ pointerEvents: "none" }}
               >
                 {label}
               </text>
