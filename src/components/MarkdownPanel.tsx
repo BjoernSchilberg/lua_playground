@@ -122,18 +122,19 @@ export default function MarkdownPanel({
   }, [tocOpen]);
 
   /* Fetch the .md file */
-  useEffect(() => {
-    setMarkdown(null);
-    setError(null);
-    setTocOpen(false);
-    fetch(`${basePath}/tutorial/${src}`)
+  const fetchMarkdown = useCallback((file: string, reset = true) => {
+    if (reset) {
+      setMarkdown(null);
+      setError(null);
+      setTocOpen(false);
+    }
+    fetch(`${basePath}/tutorial/${file}`)
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.text();
       })
       .then((text) => {
         setMarkdown(text);
-        /* If a scroll-to-heading was requested (e.g. from TOC click on this doc), execute it */
         if (pendingScrollRef.current) {
           const id = pendingScrollRef.current;
           pendingScrollRef.current = null;
@@ -144,7 +145,19 @@ export default function MarkdownPanel({
         }
       })
       .catch((e) => setError(e.message));
-  }, [src]);
+  }, []);
+
+  /* Initial load + reload when src changes */
+  useEffect(() => {
+    fetchMarkdown(src);
+  }, [src, fetchMarkdown]);
+
+  /* Re-fetch on window focus (handy for live-editing .md files) */
+  useEffect(() => {
+    const onFocus = () => fetchMarkdown(src, false);
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [src, fetchMarkdown]);
 
   /* Handle deferred scroll request from parent (after doc switch) */
   useEffect(() => {
@@ -248,6 +261,8 @@ export default function MarkdownPanel({
       }}
       className="flex-1 min-w-0 h-full flex flex-col overflow-hidden transition-colors duration-200 outline-none"
       style={{
+        position: "relative",
+        zIndex: 0,
         backgroundColor: ui.surface2,
         color: ui.fg,
         ["--md-bg" as string]: ui.surface2,
