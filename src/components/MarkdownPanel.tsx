@@ -39,17 +39,17 @@ function slugify(text: string): string {
 }
 
 export interface TocHeading {
-  level: 2 | 3;
+  level: 1 | 2;
   text: string;
   id: string;
 }
 
 export function parseHeadings(md: string): TocHeading[] {
   const result: TocHeading[] = [];
-  const regex = /^(#{2,3})\s+(.+)$/gm;
+  const regex = /^(#{1,2})\s+(.+)$/gm;
   let match;
   while ((match = regex.exec(md)) !== null) {
-    const level = match[1].length as 2 | 3;
+    const level = match[1].length as 1 | 2;
     const text = match[2]
       .replace(/`([^`]*)`/g, "$1")
       .replace(/\*\*([^*]*)\*\*/g, "$1")
@@ -166,14 +166,14 @@ export default function MarkdownPanel({
 
   /* Custom components for ReactMarkdown */
   const components: ComponentProps<typeof ReactMarkdown>["components"] = {
-    // Give h2/h3 elements an id so we can scroll to them
+    // Give h1/h2 elements an id so we can scroll to them
+    h1({ children, ...rest }) {
+      const id = slugify(extractText(children));
+      return <h1 id={id} {...rest}>{children}</h1>;
+    },
     h2({ children, ...rest }) {
       const id = slugify(extractText(children));
       return <h2 id={id} {...rest}>{children}</h2>;
-    },
-    h3({ children, ...rest }) {
-      const id = slugify(extractText(children));
-      return <h3 id={id} {...rest}>{children}</h3>;
     },
     // Wrap fenced code blocks with a "load into editor" button
     pre({ children, ...rest }) {
@@ -324,17 +324,17 @@ export default function MarkdownPanel({
                           display: "block",
                           width: "100%",
                           textAlign: "left",
-                          paddingLeft: h.level === 2 ? 28 : 42,
+                          paddingLeft: h.level === 1 ? 28 : 42,
                           paddingRight: 14,
                           paddingTop: 4,
                           paddingBottom: 4,
                           background: "transparent",
                           color: ui.muted,
-                          fontWeight: 400,
+                          fontWeight: h.level === 1 ? 500 : 400,
                           border: "none",
                           cursor: "pointer",
                           font: "inherit",
-                          fontSize: h.level === 2 ? 13 : 12,
+                          fontSize: h.level === 1 ? 13 : 12,
                         }}
                       >
                         {h.text}
