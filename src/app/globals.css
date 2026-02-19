@@ -80,7 +80,7 @@ body {
 
 .markdown-body {
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  font-size: 15px;
+  font-size: inherit;
   line-height: 1.7;
   color: var(--md-fg);
   max-width: 52rem;

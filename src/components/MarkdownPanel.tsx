@@ -104,6 +104,7 @@ export default function MarkdownPanel({
   const [markdown, setMarkdown] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [tocOpen, setTocOpen] = useState(false);
+  const [fontSize, setFontSize] = useState(15);
   const tocRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const pendingScrollRef = useRef<string | null>(null);
@@ -232,7 +233,20 @@ export default function MarkdownPanel({
 
   return (
     <div
-      className="flex-1 min-w-0 h-full flex flex-col overflow-hidden transition-colors duration-200"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "+" || e.key === "=") {
+          e.preventDefault();
+          setFontSize((s) => Math.min(24, s + 1));
+        } else if (e.key === "-") {
+          e.preventDefault();
+          setFontSize((s) => Math.max(10, s - 1));
+        } else if (e.key === "0") {
+          e.preventDefault();
+          setFontSize(15);
+        }
+      }}
+      className="flex-1 min-w-0 h-full flex flex-col overflow-hidden transition-colors duration-200 outline-none"
       style={{
         backgroundColor: ui.surface2,
         color: ui.fg,
@@ -346,13 +360,42 @@ export default function MarkdownPanel({
             )}
           </div>
         )}
-        {navBtn(navPrev, "Zurück", "left")}
         <span style={{ flex: 1 }} />
-        {navBtn(navNext, "Weiter", "right")}
+        {/* Font size controls */}
+        <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <button
+            type="button"
+            onClick={() => setFontSize((s) => Math.max(10, s - 1))}
+            className="md-nav-link"
+            style={{ background: "none", border: "none", cursor: "pointer", padding: "0 4px", font: "inherit", fontSize: 16, lineHeight: 1 }}
+            title="Schrift verkleinern"
+          >
+            A−
+          </button>
+          <button
+            type="button"
+            onClick={() => setFontSize(15)}
+            className="md-nav-link"
+            style={{ background: "none", border: "none", cursor: "pointer", padding: "0 2px", font: "inherit", fontSize: 11, lineHeight: 1, opacity: fontSize === 15 ? 0.4 : 1 }}
+            title="Schriftgröße zurücksetzen"
+          >
+            {fontSize}px
+          </button>
+          <button
+            type="button"
+            onClick={() => setFontSize((s) => Math.min(24, s + 1))}
+            className="md-nav-link"
+            style={{ background: "none", border: "none", cursor: "pointer", padding: "0 4px", font: "inherit", fontSize: 16, lineHeight: 1 }}
+            title="Schrift vergrößern"
+          >
+            A+
+          </button>
+        </div>
+        <span style={{ flex: 1 }} />
       </div>
 
       {/* Content */}
-      <div ref={contentRef} className="flex-1 overflow-y-auto themed-scrollbar px-6 py-4">
+      <div ref={contentRef} className="flex-1 overflow-y-auto themed-scrollbar px-6 py-4" style={{ fontSize }}>
         {error && (
           <div className="text-red-500 p-4">
             Fehler beim Laden: {error}
