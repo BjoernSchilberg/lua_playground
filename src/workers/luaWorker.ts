@@ -322,6 +322,9 @@ function tick() {
           parts.push(bridge.tostring(co, i) ?? "nil");
         }
         post({ type: "REPL_RESULT", value: parts.join("\t") });
+      } else {
+        // No return value — still signal completion so the client clears its buffer
+        post({ type: "REPL_RESULT", value: null });
       }
       replRunning = false;
     }
@@ -629,12 +632,11 @@ self.onmessage = async (e: MessageEvent<MsgToWorker>) => {
           try { bridge!.close(L); } catch { /* ignore */ }
         }
         L = bridge!.newstate();
-        // Run the Hathi preamble once so it's available in REPL
+        // Run the Hathi preamble once so hathi.* is available in REPL.
+        // No hook needed – the preamble only defines functions/tables.
         const preambleCo = bridge!.newthread(L);
         const preambleStatus = bridge!.load(preambleCo, HATHI_PREAMBLE);
         if (preambleStatus === 0) {
-          bridge!.setup_hook(L, preambleCo, TIMESLICE_COUNT);
-          bridge!.set_step_mode(0);
           bridge!.resume(preambleCo, L, 0);
         }
         // Pop the preamble thread from the stack
