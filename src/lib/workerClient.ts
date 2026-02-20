@@ -60,6 +60,10 @@ export class LuaWorkerClient {
     this.post({ type: "STDIN_SUBMIT", value });
   }
 
+  replEval(code: string) {
+    this.post({ type: "REPL_EVAL", code });
+  }
+
   terminate() {
     this.worker.terminate();
   }

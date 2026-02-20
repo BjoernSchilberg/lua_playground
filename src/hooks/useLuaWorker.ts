@@ -29,6 +29,12 @@ export function useLuaWorker(
   /* ---- Step debugger state ---- */
   const [pausedLine, setPausedLine] = useState<number | null>(null);
 
+  /* ---- REPL state ---- */
+  const [replMode, setReplMode] = useState(false);
+  const replBufferRef = useRef<string>("");  // multi-line accumulation
+  const replHistoryRef = useRef<string[]>([]);
+  const replHistoryIdxRef = useRef(-1);  // -1 = not browsing history
+
   const workerRef = useRef<LuaWorkerClient | null>(null);
   const consoleEndRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -56,6 +62,11 @@ export function useLuaWorker(
           ...prev,
           { text: `Error: ${msg.message}`, isError: true },
         ]);
+        // Clear REPL buffer on error (save to history if non-empty)
+        if (replBufferRef.current.trim()) {
+          replHistoryRef.current.push(replBufferRef.current);
+        }
+        replBufferRef.current = "";
         break;
       case "SHOW_WORLD":
         setShowWorld(true);
@@ -83,6 +94,22 @@ export function useLuaWorker(
         break;
       case "LINE_PAUSED":
         setPausedLine(msg.line);
+        break;
+      case "REPL_RESULT":
+        if (msg.value !== null) {
+          setConsoleLines((prev) => [...prev, { text: msg.value + "\n" }]);
+        }
+        // Save completed expression to history
+        if (replBufferRef.current.trim()) {
+          replHistoryRef.current.push(replBufferRef.current);
+        }
+        replBufferRef.current = "";
+        setStatusAndRef("idle");
+        break;
+      case "REPL_INCOMPLETE":
+        // Multi-line: append newline so next line is concatenated
+        replBufferRef.current += "\n";
+        setStatusAndRef("idle");
         break;
     }
   }, [setStatusAndRef]);
@@ -183,6 +210,78 @@ export function useLuaWorker(
     setInputValue("");
   };
 
+  /* ---- REPL actions ---- */
+
+  const toggleReplMode = useCallback(() => {
+    setReplMode((prev) => {
+      if (!prev) {
+        // Entering REPL mode
+        replBufferRef.current = "";
+        replHistoryRef.current = [];
+        replHistoryIdxRef.current = -1;
+        setConsoleLines([]);
+        workerRef.current?.reset();
+      } else {
+        // Leaving REPL mode
+        replBufferRef.current = "";
+        replHistoryIdxRef.current = -1;
+        workerRef.current?.reset();
+      }
+      return !prev;
+    });
+  }, []);
+
+  const handleReplSubmit = useCallback((e: React.FormEvent) => {
+    e.preventDefault();
+    if (!replMode) return;
+
+    /* If the Lua program called io.read(), forward as stdin */
+    if (statusRef.current === "waiting_input") {
+      workerRef.current?.submitStdin(inputValue);
+      setConsoleLines((prev) => [...prev, { text: `? ${inputValue}\n` }]);
+      setInputValue("");
+      return;
+    }
+
+    const line = inputValue;
+    const isMultiLine = replBufferRef.current.length > 0;
+    const prompt = isMultiLine ? ">> " : "> ";
+    setConsoleLines((prev) => [...prev, { text: `${prompt}${line}\n` }]);
+
+    const fullCode = replBufferRef.current + line;
+
+    // Keep fullCode in buffer until we know the result
+    replBufferRef.current = fullCode;
+    replHistoryIdxRef.current = -1;
+    setInputValue("");
+    workerRef.current?.replEval(fullCode);
+  }, [replMode, inputValue]);
+
+  const handleReplKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    const hist = replHistoryRef.current;
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      if (hist.length === 0) return;
+      const idx = replHistoryIdxRef.current;
+      const next = idx === -1 ? hist.length - 1 : Math.max(0, idx - 1);
+      replHistoryIdxRef.current = next;
+      setInputValue(hist[next]);
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (hist.length === 0) return;
+      const idx = replHistoryIdxRef.current;
+      if (idx === -1) return;
+      const next = idx + 1;
+      if (next >= hist.length) {
+        replHistoryIdxRef.current = -1;
+        setInputValue("");
+      } else {
+        replHistoryIdxRef.current = next;
+        setInputValue(hist[next]);
+      }
+    }
+  }, []);
+
   return {
     // State
     consoleLines,
@@ -209,5 +308,11 @@ export function useLuaWorker(
     handleStop,
     handleReset,
     handleInputSubmit,
+    // REPL
+    replMode,
+    toggleReplMode,
+    handleReplSubmit,
+    handleReplKeyDown,
+    replBufferRef,
   };
 }

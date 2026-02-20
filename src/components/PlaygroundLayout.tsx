@@ -382,10 +382,14 @@ export default function PlaygroundLayout({
               status={worker.status}
               inputValue={worker.inputValue}
               onInputChange={worker.setInputValue}
-              onInputSubmit={worker.handleInputSubmit}
+              onInputSubmit={worker.replMode ? worker.handleReplSubmit : worker.handleInputSubmit}
               ui={ui}
               consoleEndRef={worker.consoleEndRef}
               inputRef={worker.inputRef}
+              replMode={worker.replMode}
+              onToggleRepl={worker.toggleReplMode}
+              onReplKeyDown={worker.handleReplKeyDown}
+              replBuffer={worker.replBufferRef.current}
             />
           </div>
         </div>

@@ -52,6 +52,11 @@ let waitingInput = false;
 let stepping = false;  // true when in single-step mode
 let schedulerTimer: ReturnType<typeof setTimeout> | null = null;
 
+/** Whether REPL mode has been initialised (persistent VM exists) */
+let replActive = false;
+/** Whether the current execution was triggered by a REPL_EVAL */
+let replRunning = false;
+
 const stdinQueue: string[] = [];
 
 let initPromise: Promise<void> | null = null;
@@ -308,6 +313,18 @@ function tick() {
 
   if (status === 0) {
     // LUA_OK – script finished
+    if (replRunning) {
+      // REPL mode: collect return values for auto-print
+      const nresults = bridge.get_nresults();
+      if (nresults > 0) {
+        const parts: string[] = [];
+        for (let i = -nresults; i <= -1; i++) {
+          parts.push(bridge.tostring(co, i) ?? "nil");
+        }
+        post({ type: "REPL_RESULT", value: parts.join("\t") });
+      }
+      replRunning = false;
+    }
     running = false;
     waitingInput = false;
     post({ type: "STATUS", state: "idle" });
@@ -425,14 +442,17 @@ function tick() {
 
   // Error — correct line number for preamble offset
   let errMsg = bridge.tostring(co, -1) ?? "unknown Lua error";
-  errMsg = errMsg.replace(/\]:([0-9]+):/, (_m, ln) => {
-    const corrected = Math.max(1, parseInt(ln, 10) - PREAMBLE_LINES);
-    return `]:${corrected}:`;
-  });
+  if (!replRunning) {
+    errMsg = errMsg.replace(/\]:([0-9]+):/, (_m, ln) => {
+      const corrected = Math.max(1, parseInt(ln, 10) - PREAMBLE_LINES);
+      return `]:${corrected}:`;
+    });
+  }
   bridge.clearstack(co);
   running = false;
+  replRunning = false;
   post({ type: "ERROR", message: errMsg });
-  post({ type: "STATUS", state: "error" });
+  post({ type: "STATUS", state: replActive ? "idle" : "error" });
 }
 
 /* ------------------------------------------------------------------ */
@@ -554,7 +574,18 @@ self.onmessage = async (e: MessageEvent<MsgToWorker>) => {
 
     case "STOP": {
       stopScheduler();
-      post({ type: "STATUS", state: "stopped" });
+      if (replActive) {
+        // In REPL mode: clean up the running coroutine but keep the VM alive
+        if (co && bridge) {
+          bridge.clearstack(co);
+          bridge.pop(L, 1); // pop the dead thread from the main stack
+          co = 0;
+        }
+        replRunning = false;
+        post({ type: "STATUS", state: "idle" });
+      } else {
+        post({ type: "STATUS", state: "stopped" });
+      }
       break;
     }
 
@@ -562,6 +593,8 @@ self.onmessage = async (e: MessageEvent<MsgToWorker>) => {
       stopScheduler();
       stdinQueue.length = 0;
       if (Module) Module.stdinBuffer.length = 0;
+      replActive = false;
+      replRunning = false;
       destroyVM();
       post({ type: "CONSOLE_CLEAR" });
       post({ type: "STATUS", state: "idle" });
@@ -581,6 +614,76 @@ self.onmessage = async (e: MessageEvent<MsgToWorker>) => {
         // _spop() reads from stdinBuffer, so put it there.
         if (Module) Module.stdinBuffer.push(msg.value);
       }
+      break;
+    }
+
+    case "REPL_EVAL": {
+      await ensureInit();
+
+      // Stop any previous run
+      stopScheduler();
+
+      // Create persistent VM on first REPL use (or if destroyed)
+      if (!L || !replActive) {
+        if (L) {
+          try { bridge!.close(L); } catch { /* ignore */ }
+        }
+        L = bridge!.newstate();
+        // Run the Hathi preamble once so it's available in REPL
+        const preambleCo = bridge!.newthread(L);
+        const preambleStatus = bridge!.load(preambleCo, HATHI_PREAMBLE);
+        if (preambleStatus === 0) {
+          bridge!.setup_hook(L, preambleCo, TIMESLICE_COUNT);
+          bridge!.set_step_mode(0);
+          bridge!.resume(preambleCo, L, 0);
+        }
+        // Pop the preamble thread from the stack
+        bridge!.pop(L, 1);
+        replActive = true;
+      }
+
+      const code = msg.code;
+
+      // Try as expression first (auto-print): "return <code>"
+      co = bridge!.newthread(L);
+      let loadStatus = bridge!.load(co, `return ${code}`);
+
+      if (loadStatus !== 0) {
+        // Expression failed — try as statement
+        bridge!.clearstack(co);
+        bridge!.pop(L, 1); // pop dead thread
+        co = bridge!.newthread(L);
+        loadStatus = bridge!.load(co, code);
+      }
+
+      if (loadStatus !== 0) {
+        // Check for incomplete input (<eof> at the end of error)
+        const errStr = bridge!.tostring(co, -1) ?? "";
+        bridge!.clearstack(co);
+        bridge!.pop(L, 1); // pop dead thread
+        co = 0;
+
+        if (errStr.includes("<eof>")) {
+          // Incomplete — signal UI to request continuation
+          post({ type: "REPL_INCOMPLETE" });
+          return;
+        }
+
+        // Real syntax error
+        post({ type: "ERROR", message: errStr });
+        post({ type: "STATUS", state: "idle" });
+        return;
+      }
+
+      // Set up timeslice hook and run
+      bridge!.set_step_mode(0);
+      bridge!.setup_hook(L, co, TIMESLICE_COUNT);
+
+      running = true;
+      replRunning = true;
+      waitingInput = false;
+      post({ type: "STATUS", state: "running" });
+      scheduleTick();
       break;
     }
   }

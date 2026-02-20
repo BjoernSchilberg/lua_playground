@@ -17,7 +17,8 @@ export type MsgToWorker =
   | { type: "CONTINUE" }               // Resume full-speed from paused state
   | { type: "STOP" }
   | { type: "RESET" }
-  | { type: "STDIN_SUBMIT"; value: string };
+  | { type: "STDIN_SUBMIT"; value: string }
+  | { type: "REPL_EVAL"; code: string };
 
 /* ---- World / Hathi types ---- */
 
@@ -36,4 +37,6 @@ export type MsgFromWorker =
   | { type: "SHOW_WORLD" }
   | { type: "WORLD_INIT"; level: string[]; hathiRow: number; hathiCol: number; hathiDir: number }
   | { type: "WORLD_PATCH"; patches: WorldPatch[] }
-  | { type: "LINE_PAUSED"; line: number };
+  | { type: "LINE_PAUSED"; line: number }
+  | { type: "REPL_RESULT"; value: string | null }
+  | { type: "REPL_INCOMPLETE" };
