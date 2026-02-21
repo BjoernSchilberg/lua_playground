@@ -32,6 +32,9 @@ jobs:
           GITHUB_ACTIONS: "true"
         run: npm run build
 
+      - name: Create SPA redirect (404.html)
+        run: bash scripts/create-spa-redirect.sh out /lua_playground
+
       - uses: actions/upload-pages-artifact@v3
         with:
           path: out

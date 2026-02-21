@@ -32,7 +32,7 @@ function slugify(text: string): string {
   return text
     .toLowerCase()
     .replace(/[`*_~]/g, "")
-    .replace(/[^\w\s-]/g, "")
+    .replace(/[^\p{L}\p{N}\s-]/gu, "")
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "");
@@ -88,6 +88,8 @@ export interface MarkdownPanelProps {
   toc?: { title: string; active: boolean; onSelect: () => void; headings?: TocHeading[] }[];
   /** Called to scroll to a heading after navigating to a different doc */
   onScrollToHeading?: (id: string) => void;
+  /** Called when a #fragment anchor is clicked so the parent can update the URL */
+  onHashChange?: (id: string) => void;
 }
 
 /* ------------------------------------------------------------------ */
@@ -103,6 +105,7 @@ export default function MarkdownPanel({
   navNext,
   toc,
   onScrollToHeading,
+  onHashChange,
 }: MarkdownPanelProps) {
   const [markdown, setMarkdown] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -111,6 +114,7 @@ export default function MarkdownPanel({
   const tocRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const pendingScrollRef = useRef<string | null>(null);
+  const hasScrolledInitialHash = useRef(false);
 
   /* Close TOC on outside click */
   useEffect(() => {
@@ -138,14 +142,6 @@ export default function MarkdownPanel({
       })
       .then((text) => {
         setMarkdown(text);
-        if (pendingScrollRef.current) {
-          const id = pendingScrollRef.current;
-          pendingScrollRef.current = null;
-          requestAnimationFrame(() => {
-            const el = document.getElementById(id);
-            if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-          });
-        }
       })
       .catch((e) => setError(e.message));
   }, []);
@@ -154,6 +150,32 @@ export default function MarkdownPanel({
   useEffect(() => {
     fetchMarkdown(src);
   }, [src, fetchMarkdown]);
+
+  /* Scroll to heading after markdown is rendered in the DOM */
+  useEffect(() => {
+    if (markdown === null) return;
+
+    const scrollTarget = pendingScrollRef.current;
+    if (scrollTarget) {
+      pendingScrollRef.current = null;
+      requestAnimationFrame(() => {
+        const el = document.getElementById(scrollTarget);
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+      return;
+    }
+
+    if (!hasScrolledInitialHash.current) {
+      hasScrolledInitialHash.current = true;
+      const hash = window.location.hash.slice(1);
+      if (hash) {
+        requestAnimationFrame(() => {
+          const el = document.getElementById(hash);
+          if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+      }
+    }
+  }, [markdown]);
 
   /* Re-fetch on window focus (handy for live-editing .md files) */
   useEffect(() => {
@@ -344,6 +366,7 @@ export default function MarkdownPanel({
                           if (item.active) {
                             /* Same doc: just scroll */
                             scrollToHeading(h.id);
+                            onHashChange?.(h.id);
                           } else {
                             /* Different doc: navigate first, then scroll after load */
                             pendingScrollRef.current = h.id;
@@ -413,7 +436,25 @@ export default function MarkdownPanel({
       </div>
 
       {/* Content */}
-      <div ref={contentRef} className="flex-1 overflow-y-auto themed-scrollbar px-6 py-4" style={{ fontSize }}>
+      <div
+        ref={contentRef}
+        className="flex-1 overflow-y-auto themed-scrollbar px-6 py-4"
+        style={{ fontSize }}
+        onClick={(e) => {
+          // Intercept clicks on #fragment links and scroll within the panel
+          const target = (e.target as HTMLElement).closest("a");
+          if (!target) return;
+          const href = target.getAttribute("href");
+          if (!href || !href.startsWith("#")) return;
+          e.preventDefault();
+          const id = href.slice(1);
+          const el = document.getElementById(id);
+          if (el) {
+            el.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
+          onHashChange?.(id);
+        }}
+      >
         {error && (
           <div className="text-red-500 p-4">
             Fehler beim Laden: {error}
@@ -429,6 +470,8 @@ export default function MarkdownPanel({
               rehypePlugins={[rehypeRaw, rehypeHighlight]}
               components={components}
               urlTransform={(url) => {
+                // Fragment-only links stay as-is (in-page anchors)
+                if (url.startsWith("#")) return url;
                 if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("/")) {
                   return url;
                 }
