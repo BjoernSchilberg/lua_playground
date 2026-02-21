@@ -74,8 +74,10 @@ export interface TutorialEntry {
 /* ------------------------------------------------------------------ */
 
 export interface MarkdownPanelProps {
-  /** Filename inside public/tutorial/, e.g. "einfuehrung_lua01.md" */
+  /** Filename (or sub-path) inside the base directory, e.g. "einfuehrung_lua01.md" */
   src: string;
+  /** Folder inside public/ that contains the .md files (default: "tutorial") */
+  baseDir?: string;
   ui: UiColors;
   /** Called when user clicks "In Editor laden" on a Lua code block */
   onLoadCode: (code: string) => void;
@@ -94,6 +96,7 @@ export interface MarkdownPanelProps {
 
 export default function MarkdownPanel({
   src,
+  baseDir = "tutorial",
   ui,
   onLoadCode,
   navPrev,
@@ -128,7 +131,7 @@ export default function MarkdownPanel({
       setError(null);
       setTocOpen(false);
     }
-    fetch(`${basePath}/tutorial/${file}`)
+    fetch(`${basePath}/${baseDir}/${file}`)
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.text();
@@ -425,6 +428,15 @@ export default function MarkdownPanel({
               remarkPlugins={[remarkGfm]}
               rehypePlugins={[rehypeRaw, rehypeHighlight]}
               components={components}
+              urlTransform={(url) => {
+                if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("/")) {
+                  return url;
+                }
+                // Resolve relative to the directory containing the .md file
+                const filePath = `${baseDir}/${src}`;
+                const dir = filePath.substring(0, filePath.lastIndexOf("/") + 1);
+                return `${basePath}/${dir}${url}`;
+              }}
             >
               {markdown}
             </ReactMarkdown>
