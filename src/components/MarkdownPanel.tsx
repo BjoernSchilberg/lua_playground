@@ -118,6 +118,7 @@ export default function MarkdownPanel({
   const [error, setError] = useState<string | null>(null);
   const [tocOpen, setTocOpen] = useState(false);
   const [fontSize, setFontSize] = useState(15);
+  const [showSource, setShowSource] = useState(false);
   const tocRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const pendingScrollRef = useRef<string | null>(null);
@@ -463,6 +464,25 @@ export default function MarkdownPanel({
           </button>
         </div>
         <span style={{ flex: 1 }} />
+        {/* Source toggle */}
+        <button
+          type="button"
+          onClick={() => setShowSource((v) => !v)}
+          className="md-nav-link"
+          style={{
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            padding: "0 8px",
+            font: "inherit",
+            fontSize: 14,
+            lineHeight: 1,
+            opacity: showSource ? 1 : 0.6,
+          }}
+          title={showSource ? "Gerenderte Ansicht" : "Markdown-Quelltext anzeigen"}
+        >
+          {showSource ? "Aa" : "M↓"}
+        </button>
       </div>
 
       {/* Content */}
@@ -493,7 +513,7 @@ export default function MarkdownPanel({
         {markdown === null && !error && (
           <div className="text-neutral-500 p-4">Lade Tutorial…</div>
         )}
-        {markdown !== null && (
+        {markdown !== null && !showSource && (
           <div className={`markdown-body ${ui.isDark ? "hljs-dark" : "hljs-light"}`}>
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
@@ -514,6 +534,23 @@ export default function MarkdownPanel({
               {markdown}
             </ReactMarkdown>
           </div>
+        )}
+        {markdown !== null && showSource && (
+          <pre
+            className="themed-scrollbar"
+            style={{
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-word",
+              fontFamily: "var(--font-geist-mono), monospace",
+              fontSize: fontSize - 1,
+              lineHeight: 1.6,
+              color: ui.fg,
+              margin: 0,
+              padding: 0,
+              background: "transparent",
+              userSelect: "text",
+            }}
+          >{markdown}</pre>
         )}
       </div>
 
