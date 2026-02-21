@@ -1,18 +1,25 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useParams } from "next/navigation";
 import PlaygroundLayout from "@/components/PlaygroundLayout";
 import MarkdownPanel, { type TutorialEntry, type TocHeading, parseHeadings } from "@/components/MarkdownPanel";
 import basePath from "@/lib/basePath";
 
-export default function TutorialPage() {
+export default function FolderPage() {
+  const params = useParams<{ folder: string }>();
+  const folder = params.folder;
+
   const [manifest, setManifest] = useState<TutorialEntry[] | null>(null);
   const [headingsMap, setHeadingsMap] = useState<Record<string, TocHeading[]>>({});
   const [currentIdx, setCurrentIdx] = useState(0);
 
   useEffect(() => {
-    fetch(`${basePath}/tutorial/manifest.json`)
-      .then((r) => r.json())
+    fetch(`${basePath}/${folder}/manifest.json`)
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
       .then(async (data: TutorialEntry[]) => {
         setManifest(data);
         setCurrentIdx(0);
@@ -20,7 +27,7 @@ export default function TutorialPage() {
         const entries = await Promise.all(
           data.map(async (entry) => {
             try {
-              const r = await fetch(`${basePath}/tutorial/${entry.file}`);
+              const r = await fetch(`${basePath}/${folder}/${entry.file}`);
               if (!r.ok) return [entry.file, []] as const;
               const md = await r.text();
               return [entry.file, parseHeadings(md)] as const;
@@ -32,7 +39,7 @@ export default function TutorialPage() {
         setHeadingsMap(Object.fromEntries(entries));
       })
       .catch(() => setManifest([]));
-  }, []);
+  }, [folder]);
 
   const goNext = useCallback(() => setCurrentIdx((i) => i + 1), []);
   const goPrev = useCallback(() => setCurrentIdx((i) => i - 1), []);
@@ -48,6 +55,7 @@ export default function TutorialPage() {
         entry ? (
           <MarkdownPanel
             src={entry.file}
+            baseDir={folder}
             ui={ctx.ui}
             onLoadCode={(code) => {
               const trimmed = ctx.code.trimEnd();
@@ -67,7 +75,7 @@ export default function TutorialPage() {
             className="flex-1 flex items-center justify-center min-w-0 h-full"
             style={{ backgroundColor: ctx.ui.surface2, color: ctx.ui.muted }}
           >
-            {manifest === null ? "Lade Tutorial…" : "Kein Tutorial gefunden."}
+            {manifest === null ? "Lade…" : "Kein Manifest gefunden."}
           </div>
         )
       }
