@@ -264,8 +264,29 @@ export function useLuaWorker(
   const handleReplKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     const hist = replHistoryRef.current;
     const input = e.currentTarget;
+    const val = input.value;
+    const pos = input.selectionStart ?? 0;
 
-    if (e.ctrlKey) {
+    /* ---- Helper: find word boundary positions ---- */
+    const wordBoundaryRight = (from: number): number => {
+      let i = from;
+      // skip non-word chars
+      while (i < val.length && /\W/.test(val[i])) i++;
+      // skip word chars
+      while (i < val.length && /\w/.test(val[i])) i++;
+      return i;
+    };
+    const wordBoundaryLeft = (from: number): number => {
+      let i = from;
+      // skip non-word chars backwards
+      while (i > 0 && /\W/.test(val[i - 1])) i--;
+      // skip word chars backwards
+      while (i > 0 && /\w/.test(val[i - 1])) i--;
+      return i;
+    };
+
+    /* ---- Ctrl+ shortcuts ---- */
+    if (e.ctrlKey && !e.altKey) {
       switch (e.key) {
         /* Ctrl+L — clear console */
         case "l": {
@@ -297,8 +318,25 @@ export function useLuaWorker(
         case "e": {
           e.preventDefault();
           e.stopPropagation();
-          const len = input.value.length;
-          input.setSelectionRange(len, len);
+          input.setSelectionRange(val.length, val.length);
+          return;
+        }
+
+        /* Ctrl+F — cursor forward one char */
+        case "f": {
+          e.preventDefault();
+          e.stopPropagation();
+          const next = Math.min(pos + 1, val.length);
+          input.setSelectionRange(next, next);
+          return;
+        }
+
+        /* Ctrl+B — cursor backward one char */
+        case "b": {
+          e.preventDefault();
+          e.stopPropagation();
+          const prev = Math.max(pos - 1, 0);
+          input.setSelectionRange(prev, prev);
           return;
         }
 
@@ -306,9 +344,7 @@ export function useLuaWorker(
         case "k": {
           e.preventDefault();
           e.stopPropagation();
-          const pos = input.selectionStart ?? input.value.length;
-          const newVal = input.value.substring(0, pos);
-          setInputValue(newVal);
+          setInputValue(val.substring(0, pos));
           return;
         }
 
@@ -316,11 +352,20 @@ export function useLuaWorker(
         case "u": {
           e.preventDefault();
           e.stopPropagation();
-          const pos = input.selectionStart ?? 0;
-          const newVal = input.value.substring(pos);
-          setInputValue(newVal);
-          // Move cursor to beginning after React re-render
+          const rest = val.substring(pos);
+          setInputValue(rest);
           requestAnimationFrame(() => input.setSelectionRange(0, 0));
+          return;
+        }
+
+        /* Ctrl+W — backward kill word */
+        case "w": {
+          e.preventDefault();
+          e.stopPropagation();
+          const boundary = wordBoundaryLeft(pos);
+          const newVal = val.substring(0, boundary) + val.substring(pos);
+          setInputValue(newVal);
+          requestAnimationFrame(() => input.setSelectionRange(boundary, boundary));
           return;
         }
 
@@ -351,6 +396,54 @@ export function useLuaWorker(
             replHistoryIdxRef.current = nextN;
             setInputValue(hist[nextN]);
           }
+          return;
+        }
+
+        default:
+          break;
+      }
+    }
+
+    /* ---- Alt+ shortcuts (word navigation & deletion) ---- */
+    if (e.altKey && !e.ctrlKey) {
+      switch (e.key) {
+        /* Alt+F — forward one word */
+        case "f": {
+          e.preventDefault();
+          e.stopPropagation();
+          const target = wordBoundaryRight(pos);
+          input.setSelectionRange(target, target);
+          return;
+        }
+
+        /* Alt+B — backward one word */
+        case "b": {
+          e.preventDefault();
+          e.stopPropagation();
+          const target = wordBoundaryLeft(pos);
+          input.setSelectionRange(target, target);
+          return;
+        }
+
+        /* Alt+D — kill word forward */
+        case "d": {
+          e.preventDefault();
+          e.stopPropagation();
+          const boundary = wordBoundaryRight(pos);
+          const newVal = val.substring(0, pos) + val.substring(boundary);
+          setInputValue(newVal);
+          requestAnimationFrame(() => input.setSelectionRange(pos, pos));
+          return;
+        }
+
+        /* Alt+Backspace — kill word backward */
+        case "Backspace": {
+          e.preventDefault();
+          e.stopPropagation();
+          const boundary = wordBoundaryLeft(pos);
+          const newVal = val.substring(0, boundary) + val.substring(pos);
+          setInputValue(newVal);
+          requestAnimationFrame(() => input.setSelectionRange(boundary, boundary));
           return;
         }
 
