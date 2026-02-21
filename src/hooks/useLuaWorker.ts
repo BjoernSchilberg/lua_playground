@@ -105,11 +105,13 @@ export function useLuaWorker(
         }
         replBufferRef.current = "";
         setStatusAndRef("idle");
+        requestAnimationFrame(() => inputRef.current?.focus());
         break;
       case "REPL_INCOMPLETE":
         // Multi-line: append newline so next line is concatenated
         replBufferRef.current += "\n";
         setStatusAndRef("idle");
+        requestAnimationFrame(() => inputRef.current?.focus());
         break;
     }
   }, [setStatusAndRef]);
@@ -221,6 +223,8 @@ export function useLuaWorker(
         replHistoryIdxRef.current = -1;
         setConsoleLines([]);
         workerRef.current?.reset();
+        // Focus the input after entering REPL mode
+        requestAnimationFrame(() => inputRef.current?.focus());
       } else {
         // Leaving REPL mode
         replBufferRef.current = "";
@@ -259,6 +263,103 @@ export function useLuaWorker(
 
   const handleReplKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     const hist = replHistoryRef.current;
+    const input = e.currentTarget;
+
+    if (e.ctrlKey) {
+      switch (e.key) {
+        /* Ctrl+L — clear console */
+        case "l": {
+          e.preventDefault();
+          e.stopPropagation();
+          setConsoleLines([]);
+          return;
+        }
+
+        /* Ctrl+D — exit REPL (when input is empty) */
+        case "d": {
+          e.preventDefault();
+          e.stopPropagation();
+          if (!inputValue) {
+            toggleReplMode();
+          }
+          return;
+        }
+
+        /* Ctrl+A — cursor to start of line */
+        case "a": {
+          e.preventDefault();
+          e.stopPropagation();
+          input.setSelectionRange(0, 0);
+          return;
+        }
+
+        /* Ctrl+E — cursor to end of line */
+        case "e": {
+          e.preventDefault();
+          e.stopPropagation();
+          const len = input.value.length;
+          input.setSelectionRange(len, len);
+          return;
+        }
+
+        /* Ctrl+K — kill to end of line */
+        case "k": {
+          e.preventDefault();
+          e.stopPropagation();
+          const pos = input.selectionStart ?? input.value.length;
+          const newVal = input.value.substring(0, pos);
+          setInputValue(newVal);
+          return;
+        }
+
+        /* Ctrl+U — kill to start of line */
+        case "u": {
+          e.preventDefault();
+          e.stopPropagation();
+          const pos = input.selectionStart ?? 0;
+          const newVal = input.value.substring(pos);
+          setInputValue(newVal);
+          // Move cursor to beginning after React re-render
+          requestAnimationFrame(() => input.setSelectionRange(0, 0));
+          return;
+        }
+
+        /* Ctrl+P — history back */
+        case "p": {
+          e.preventDefault();
+          e.stopPropagation();
+          if (hist.length === 0) return;
+          const idx = replHistoryIdxRef.current;
+          const next = idx === -1 ? hist.length - 1 : Math.max(0, idx - 1);
+          replHistoryIdxRef.current = next;
+          setInputValue(hist[next]);
+          return;
+        }
+
+        /* Ctrl+N — history forward */
+        case "n": {
+          e.preventDefault();
+          e.stopPropagation();
+          if (hist.length === 0) return;
+          const idxN = replHistoryIdxRef.current;
+          if (idxN === -1) return;
+          const nextN = idxN + 1;
+          if (nextN >= hist.length) {
+            replHistoryIdxRef.current = -1;
+            setInputValue("");
+          } else {
+            replHistoryIdxRef.current = nextN;
+            setInputValue(hist[nextN]);
+          }
+          return;
+        }
+
+        default:
+          break;
+      }
+    }
+
+    /* ArrowUp — history back */
     if (e.key === "ArrowUp") {
       e.preventDefault();
       if (hist.length === 0) return;
@@ -266,7 +367,11 @@ export function useLuaWorker(
       const next = idx === -1 ? hist.length - 1 : Math.max(0, idx - 1);
       replHistoryIdxRef.current = next;
       setInputValue(hist[next]);
-    } else if (e.key === "ArrowDown") {
+      return;
+    }
+
+    /* ArrowDown — history forward */
+    if (e.key === "ArrowDown") {
       e.preventDefault();
       if (hist.length === 0) return;
       const idx = replHistoryIdxRef.current;
@@ -279,8 +384,9 @@ export function useLuaWorker(
         replHistoryIdxRef.current = next;
         setInputValue(hist[next]);
       }
+      return;
     }
-  }, []);
+  }, [inputValue, toggleReplMode]);
 
   return {
     // State
