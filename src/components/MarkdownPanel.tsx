@@ -28,11 +28,18 @@ function extractText(node: ReactNode): string {
 /*  Heading slug & parser for TOC                                      */
 /* ------------------------------------------------------------------ */
 
+/** German umlaut transliteration map */
+const TRANSLITERATE: Record<string, string> = {
+  "ä": "ae", "ö": "oe", "ü": "ue", "ß": "ss",
+  "Ä": "Ae", "Ö": "Oe", "Ü": "Ue",
+};
+
 function slugify(text: string): string {
   return text
     .toLowerCase()
+    .replace(/[äöüßÄÖÜ]/g, (ch) => TRANSLITERATE[ch] ?? ch)
     .replace(/[`*_~]/g, "")
-    .replace(/[^\p{L}\p{N}\s-]/gu, "")
+    .replace(/[^\w\s-]/g, "")
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "");
@@ -167,7 +174,7 @@ export default function MarkdownPanel({
 
     if (!hasScrolledInitialHash.current) {
       hasScrolledInitialHash.current = true;
-      const hash = window.location.hash.slice(1);
+      const hash = decodeURIComponent(window.location.hash.slice(1));
       if (hash) {
         requestAnimationFrame(() => {
           const el = document.getElementById(hash);
@@ -204,16 +211,39 @@ export default function MarkdownPanel({
   }, []);
 
   /* Custom components for ReactMarkdown */
+  const HeadingWithAnchor = useCallback(({ level, children, ...rest }: { level: number; children?: ReactNode; [k: string]: unknown }) => {
+    const Tag = `h${level}` as "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
+    const id = slugify(extractText(children));
+    return (
+      <Tag id={id} className="md-heading-anchor-wrap" {...rest}>
+        {children}
+        <a
+          href={`#${id}`}
+          className="md-heading-anchor"
+          aria-label="Link zu diesem Abschnitt"
+          onClick={(e) => {
+            e.preventDefault();
+            const url = new URL(window.location.href);
+            url.hash = id;
+            window.history.replaceState(window.history.state, "", url.toString());
+            onHashChange?.(id);
+            const el = document.getElementById(id);
+            if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+            navigator.clipboard?.writeText(url.toString());
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+            <path d="M7.775 3.275a.75.75 0 001.06 1.06l1.25-1.25a2 2 0 112.83 2.83l-2.5 2.5a2 2 0 01-2.83 0 .75.75 0 00-1.06 1.06 3.5 3.5 0 004.95 0l2.5-2.5a3.5 3.5 0 00-4.95-4.95l-1.25 1.25zm-.8 9.45a.75.75 0 01-1.06-1.06l-1.25 1.25a2 2 0 11-2.83-2.83l2.5-2.5a2 2 0 012.83 0 .75.75 0 001.06-1.06 3.5 3.5 0 00-4.95 0l-2.5 2.5a3.5 3.5 0 004.95 4.95l1.25-1.25z"/>
+          </svg>
+        </a>
+      </Tag>
+    );
+  }, [onHashChange]);
+
   const components: ComponentProps<typeof ReactMarkdown>["components"] = {
-    // Give h1/h2 elements an id so we can scroll to them
-    h1({ children, ...rest }) {
-      const id = slugify(extractText(children));
-      return <h1 id={id} {...rest}>{children}</h1>;
-    },
-    h2({ children, ...rest }) {
-      const id = slugify(extractText(children));
-      return <h2 id={id} {...rest}>{children}</h2>;
-    },
+    h1({ children, ...rest }) { return <HeadingWithAnchor level={1} {...rest}>{children}</HeadingWithAnchor>; },
+    h2({ children, ...rest }) { return <HeadingWithAnchor level={2} {...rest}>{children}</HeadingWithAnchor>; },
+    h3({ children, ...rest }) { return <HeadingWithAnchor level={3} {...rest}>{children}</HeadingWithAnchor>; },
     // Wrap fenced code blocks with a "load into editor" button
     pre({ children, ...rest }) {
       return (

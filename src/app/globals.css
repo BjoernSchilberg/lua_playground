@@ -102,6 +102,20 @@ body {
 .markdown-body h2 { font-size: 1.4em; border-bottom: 1px solid var(--md-border); padding-bottom: 0.25em; }
 .markdown-body h3 { font-size: 1.15em; }
 
+/* Heading anchor link icon */
+.md-heading-anchor-wrap { position: relative; }
+.md-heading-anchor {
+  display: inline-block;
+  margin-left: 0.4em;
+  color: var(--md-muted);
+  opacity: 0;
+  vertical-align: middle;
+  transition: opacity 0.15s;
+  text-decoration: none;
+}
+.md-heading-anchor:hover { color: var(--md-link); }
+.md-heading-anchor-wrap:hover .md-heading-anchor { opacity: 1; }
+
 .markdown-body p {
   margin: 0.8em 0;
 }
