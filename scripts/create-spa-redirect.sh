@@ -24,6 +24,24 @@ find "$OUT_DIR" -maxdepth 3 -name "*.html" -not -name "index.html" -not -name "4
   fi
 done
 
+# ---- Step 1b: Create URL-encoded copies of [bracket] directories ----
+# Next.js generates dirs like [folder] but the HTML references %5Bfolder%5D.
+# GitHub Pages does NOT decode percent-encoded paths, so we must provide both.
+# Run twice: first pass copies top-level bracket dirs (including children),
+# second pass encodes any bracket dirs inside the newly-created copies.
+for _pass in 1 2; do
+  find "$OUT_DIR" -type d -name '*\[*' | while read -r dir; do
+    parent=$(dirname "$dir")
+    name=$(basename "$dir")
+    encoded=$(echo "$name" | sed 's/\[/%5B/g; s/\]/%5D/g')
+    target="$parent/$encoded"
+    if [ ! -d "$target" ]; then
+      cp -r "$dir" "$target"
+      echo "  Copied $name → $encoded (URL-encoded bracket dir)"
+    fi
+  done
+done
+
 # ---- Step 2: Create 404.html SPA redirect ----
 cat > "$OUT_DIR/404.html" << 'HEREDOC'
 <!DOCTYPE html>
