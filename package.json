@@ -3,6 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "prebuild": "rm -rf public/vs && cp -r node_modules/monaco-editor/min/vs public/vs",
+    "predev": "rm -rf public/vs && cp -r node_modules/monaco-editor/min/vs public/vs",
     "dev": "next dev --webpack",
     "build": "next build --webpack",
     "start": "next start",

@@ -45,3 +45,6 @@ yarn-error.log*
 next-env.d.ts
 
 .vscode/
+
+# Monaco editor local files (copied from node_modules at build time)
+public/vs/

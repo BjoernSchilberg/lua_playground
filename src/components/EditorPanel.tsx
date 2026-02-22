@@ -2,15 +2,23 @@ import dynamic from "next/dynamic";
 import type { UiColors } from "@/lib/uiColors";
 import type { Monaco } from "@monaco-editor/react";
 import type { editor } from "monaco-editor";
+import basePath from "@/lib/basePath";
 
-const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
-  ssr: false,
-  loading: () => (
-    <div className="flex items-center justify-center h-full bg-[#1e1e1e] text-neutral-500">
-      Loading editor…
-    </div>
-  ),
-});
+const MonacoEditor = dynamic(
+  async () => {
+    const mod = await import("@monaco-editor/react");
+    mod.loader.config({ paths: { vs: `${basePath}/vs` } });
+    return mod;
+  },
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex items-center justify-center h-full bg-[#1e1e1e] text-neutral-500">
+        Loading editor…
+      </div>
+    ),
+  },
+);
 
 interface EditorPanelProps {
   code: string;
