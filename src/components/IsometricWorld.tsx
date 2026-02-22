@@ -16,12 +16,13 @@ const TILE_FILE: Record<string, string> = {
   b: "bananas",
   c: "crate",
   F: "flag",
+  G: "flag_hoisted",
   s: "squash",
   o: "tomato",
 };
 
 /** Tiles that are objects placed ON grass (need a grass base underneath) */
-const OBJECT_TILES = new Set(["r", "t", "b", "c", "F", "s", "o"]);
+const OBJECT_TILES = new Set(["r", "t", "b", "c", "F", "G", "s", "o"]);
 
 /**
  * Hathi logical direction (0=N,1=E,2=S,3=W) → SVG file index.
@@ -168,6 +169,8 @@ export default function IsometricWorld({
       for (const ch of rowStr) {
         const f = TILE_FILE[ch];
         if (f) needed.add(f);
+        // Preload hoisted variant so raiseFlag() works instantly
+        if (ch === "F") needed.add("flag_hoisted");
       }
     }
     for (let d = 0; d < 4; d++) needed.add(`hathi_${d}`);
