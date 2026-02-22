@@ -11,8 +11,8 @@ export type WorkerState =
 /* Messages sent TO the worker */
 export type MsgToWorker =
   | { type: "INIT" }
-  | { type: "RUN"; code: string }
-  | { type: "STEP"; code: string }   // Start or step-next (code only needed on first call)
+  | { type: "RUN"; code: string; level?: string[] }
+  | { type: "STEP"; code: string; level?: string[] }   // Start or step-next (code only needed on first call)
   | { type: "STEP_NEXT" }              // Advance one line while paused
   | { type: "CONTINUE" }               // Resume full-speed from paused state
   | { type: "STOP" }

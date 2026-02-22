@@ -51,6 +51,8 @@ let running = false;
 let waitingInput = false;
 let stepping = false;  // true when in single-step mode
 let schedulerTimer: ReturnType<typeof setTimeout> | null = null;
+/** Extra lines injected between preamble and user code (e.g. level init) */
+let extraPreambleLines = 0;
 
 /** Whether REPL mode has been initialised (persistent VM exists) */
 let replActive = false;
@@ -343,7 +345,7 @@ function tick() {
       const hookLine = bridge.get_current_line();
       if (hookLine >= 0) {
         // Line-step yield: pause and report user line number
-        const userLine = hookLine - PREAMBLE_LINES;
+        const userLine = hookLine - PREAMBLE_LINES - extraPreambleLines;
         if (userLine <= 0) {
           // Still in preamble – auto-continue
           scheduleTick();
@@ -447,7 +449,7 @@ function tick() {
   let errMsg = bridge.tostring(co, -1) ?? "unknown Lua error";
   if (!replRunning) {
     errMsg = errMsg.replace(/\]:([0-9]+):/, (_m, ln) => {
-      const corrected = Math.max(1, parseInt(ln, 10) - PREAMBLE_LINES);
+      const corrected = Math.max(1, parseInt(ln, 10) - PREAMBLE_LINES - extraPreambleLines);
       return `]:${corrected}:`;
     });
   }
@@ -483,14 +485,19 @@ self.onmessage = async (e: MessageEvent<MsgToWorker>) => {
       // Fresh VM
       newVM();
 
-      // Load user code (prepend hathi preamble)
-      const fullCode = HATHI_PREAMBLE + msg.code;
+      // Load user code (prepend hathi preamble + optional level init)
+      const levelInit = msg.level
+        ? `hathi.loadLevel({${msg.level.map((r) => `"${r}"`).join(",")}})
+`
+        : "";
+      extraPreambleLines = levelInit ? levelInit.split("\n").length - 1 : 0;
+      const fullCode = HATHI_PREAMBLE + levelInit + msg.code;
       const loadStatus = bridge!.load(co, fullCode);
       if (loadStatus !== 0) {
         let err = bridge!.tostring(co, -1) ?? "syntax error";
         // Correct line numbers by subtracting preamble lines
         err = err.replace(/\]:([0-9]+):/, (_m, ln) => {
-          const corrected = Math.max(1, parseInt(ln, 10) - PREAMBLE_LINES);
+          const corrected = Math.max(1, parseInt(ln, 10) - PREAMBLE_LINES - extraPreambleLines);
           return `]:${corrected}:`;
         });
         bridge!.clearstack(co);
@@ -523,13 +530,18 @@ self.onmessage = async (e: MessageEvent<MsgToWorker>) => {
       // Fresh VM
       newVM();
 
-      // Load user code (prepend hathi preamble)
-      const stepFullCode = HATHI_PREAMBLE + msg.code;
+      // Load user code (prepend hathi preamble + optional level init)
+      const stepLevelInit = msg.level
+        ? `hathi.loadLevel({${msg.level.map((r) => `"${r}"`).join(",")}})
+`
+        : "";
+      extraPreambleLines = stepLevelInit ? stepLevelInit.split("\n").length - 1 : 0;
+      const stepFullCode = HATHI_PREAMBLE + stepLevelInit + msg.code;
       const stepLoadStatus = bridge!.load(co, stepFullCode);
       if (stepLoadStatus !== 0) {
         let err = bridge!.tostring(co, -1) ?? "syntax error";
         err = err.replace(/\]:([0-9]+):/, (_m, ln) => {
-          const corrected = Math.max(1, parseInt(ln, 10) - PREAMBLE_LINES);
+          const corrected = Math.max(1, parseInt(ln, 10) - PREAMBLE_LINES - extraPreambleLines);
           return `]:${corrected}:`;
         });
         bridge!.clearstack(co);

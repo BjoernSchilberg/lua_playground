@@ -25,6 +25,8 @@ export function useLuaWorker(
   const [showWorld, setShowWorld] = useState(false);
   const [worldLevel, setWorldLevel] = useState<string[] | null>(null);
   const [hathiPos, setHathiPos] = useState({ row: 0, col: 0, dir: 1 });
+  /** Raw level rows (with 'H') so we can re-send them to the worker on each RUN/STEP */
+  const levelRowsRef = useRef<string[] | null>(null);
 
   /* ---- Step debugger state ---- */
   const [pausedLine, setPausedLine] = useState<number | null>(null);
@@ -169,7 +171,7 @@ export function useLuaWorker(
     const source = formatEditorCode();
     setPausedLine(null);
     setConsoleLines([]);
-    workerRef.current?.run(source);
+    workerRef.current?.run(source, levelRowsRef.current ?? undefined);
   };
 
   const handleStep = () => {
@@ -179,7 +181,7 @@ export function useLuaWorker(
       const source = formatEditorCode();
       setPausedLine(null);
       setConsoleLines([]);
-      workerRef.current?.step(source);
+      workerRef.current?.step(source, levelRowsRef.current ?? undefined);
     }
   };
 
@@ -197,6 +199,7 @@ export function useLuaWorker(
     setPausedLine(null);
     workerRef.current?.reset();
     setInputValue("");
+    levelRowsRef.current = null;
     setWorldLevel(null);
     setShowWorld(false);
     setHathiPos({ row: 0, col: 0, dir: 1 });
@@ -498,6 +501,7 @@ export function useLuaWorker(
       }
       return out;
     });
+    levelRowsRef.current = rows;
     setWorldLevel(parsed);
     setHathiPos({ row: startR, col: startC, dir: 1 });
     setShowWorld(true);

@@ -29,13 +29,13 @@ export class LuaWorkerClient {
     this.post({ type: "INIT" });
   }
 
-  run(code: string) {
-    this.post({ type: "RUN", code });
+  run(code: string, level?: string[]) {
+    this.post({ type: "RUN", code, level });
   }
 
   /** Start execution in step mode (pauses at first user line) */
-  step(code: string) {
-    this.post({ type: "STEP", code });
+  step(code: string, level?: string[]) {
+    this.post({ type: "STEP", code, level });
   }
 
   /** Advance one line while paused */
