@@ -121,12 +121,14 @@ function hathi.forward()
   local nc = hathi._col + _dc[d]
   if nr < 0 or nr >= hathi._rows or nc < 0 or nc >= hathi._cols then
     print("⛔ Hier geht's nicht weiter!")
+    coroutine.yield("__hathi:speak", "Geht nicht!")
     return false
   end
   -- check walkable (only water, rock and flags block)
   local tile = hathi._level[nr + 1][nc + 1]
   if tile == "w" or tile == "r" or tile == "F" or tile == "G" then
     print("⛔ Hier geht's nicht weiter!")
+    coroutine.yield("__hathi:speak", "Geht nicht!")
     return false
   end
   hathi._row = nr
@@ -195,6 +197,10 @@ function hathi.raiseFlag()
   hathi._level[nr + 1][nc + 1] = "G"
   coroutine.yield("__hathi:tile", nr .. "|" .. nc .. "|G")
   return true
+end
+
+function hathi.speak(text)
+  coroutine.yield("__hathi:speak", tostring(text))
 end
 `;
 
@@ -442,6 +448,14 @@ function tick() {
       const [r, c, d] = payload.split("|").map(Number);
       post({ type: "WORLD_PATCH", patches: [{ kind: "hathi", row: r, col: c, dir: d }] });
       schedulerTimer = setTimeout(tick, 100);
+      return;
+    }
+
+    if (yieldTag === "__hathi:speak") {
+      const text = nresults >= 2 ? (bridge.tostring(co, -nresults + 1) ?? "") : "";
+      bridge.pop(co, nresults);
+      post({ type: "WORLD_PATCH", patches: [{ kind: "speak", text }] });
+      schedulerTimer = setTimeout(tick, 1200);
       return;
     }
 

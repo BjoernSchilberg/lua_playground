@@ -25,6 +25,7 @@ export function useLuaWorker(
   const [showWorld, setShowWorld] = useState(false);
   const [worldLevel, setWorldLevel] = useState<string[] | null>(null);
   const [hathiPos, setHathiPos] = useState({ row: 0, col: 0, dir: 1 });
+  const [hathiSpeech, setHathiSpeech] = useState<string | null>(null);
   /** Raw level rows (with 'H') so we can re-send them to the worker on each RUN/STEP */
   const levelRowsRef = useRef<string[] | null>(null);
 
@@ -81,6 +82,8 @@ export function useLuaWorker(
         for (const p of msg.patches) {
           if (p.kind === "hathi") {
             setHathiPos({ row: p.row, col: p.col, dir: p.dir });
+          } else if (p.kind === "speak") {
+            setHathiSpeech(p.text);
           } else if (p.kind === "tile") {
             setWorldLevel((prev) => {
               if (!prev) return prev;
@@ -520,6 +523,8 @@ export function useLuaWorker(
     setShowWorld,
     worldLevel,
     hathiPos,
+    hathiSpeech,
+    setHathiSpeech,
     pausedLine,
     setPausedLine,
     // Refs

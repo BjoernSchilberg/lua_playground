@@ -29,6 +29,9 @@ export interface PlaygroundContext {
   /** World data (for IsometricWorld rendering on the main page) */
   worldLevel: string[] | null;
   hathiPos: { row: number; col: number; dir: number };
+  /** Speech bubble text shown over Hathi (null = hidden) */
+  hathiSpeech: string | null;
+  setHathiSpeech: (v: string | null) => void;
   /** Load a level from parsed rows (e.g. ["HggF"]) into the world panel */
   loadLevel: (rows: string[]) => void;
 }
@@ -334,6 +337,8 @@ export default function PlaygroundLayout({
     setShowWorld: worker.setShowWorld,
     worldLevel: worker.worldLevel,
     hathiPos: worker.hathiPos,
+    hathiSpeech: worker.hathiSpeech,
+    setHathiSpeech: worker.setHathiSpeech,
     loadLevel: worker.loadLevel,
   };
 

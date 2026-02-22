@@ -127,6 +127,10 @@ export interface IsometricWorldProps {
   hathiCol: number;
   hathiDir: number;
   bgColor: string;
+  /** Speech bubble text shown above Hathi (null = hidden) */
+  speech?: string | null;
+  /** Called when the speech bubble auto-dismisses */
+  onSpeechDone?: () => void;
 }
 
 /* ------------------------------------------------------------------ */
@@ -139,6 +143,8 @@ export default function IsometricWorld({
   hathiCol,
   hathiDir,
   bgColor,
+  speech,
+  onSpeechDone,
 }: IsometricWorldProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -361,6 +367,16 @@ export default function IsometricWorld({
   }, [level, svgsLoaded, viewStep, animRow, animCol, hathiDir]);
 
   /* ---------------------------------------------------------------- */
+  /*  Auto-dismiss speech bubble                                      */
+  /* ---------------------------------------------------------------- */
+
+  useEffect(() => {
+    if (!speech) return;
+    const timer = setTimeout(() => onSpeechDone?.(), 1800);
+    return () => clearTimeout(timer);
+  }, [speech, onSpeechDone]);
+
+  /* ---------------------------------------------------------------- */
   /*  Render                                                          */
   /* ---------------------------------------------------------------- */
 
@@ -391,6 +407,30 @@ export default function IsometricWorld({
           overflow="visible"
           dangerouslySetInnerHTML={{ __html: hathiSvgContent }}
         />
+        {/* Speech bubble above Hathi */}
+        {speech && (
+          <g transform={`translate(${hathiX + SVG_W / 2}, ${hathiY + 20})`}>
+            <rect
+              x="-60" y="-42" width="120" height="36" rx="12" ry="12"
+              fill="white" stroke="#333" strokeWidth="2"
+            />
+            {/* Tail triangle pointing down */}
+            <polygon points="-6,-6 6,-6 0,8" fill="white" stroke="#333" strokeWidth="2" strokeLinejoin="round" />
+            {/* White rect to cover the tail's top stroke overlapping the bubble */}
+            <rect x="-7" y="-10" width="14" height="6" fill="white" />
+            <text
+              x="0" y="-20"
+              textAnchor="middle"
+              dominantBaseline="central"
+              fontSize="18"
+              fontFamily="system-ui, sans-serif"
+              fontWeight="bold"
+              fill="#333"
+            >
+              {speech}
+            </text>
+          </g>
+        )}
         {tilesAfter}
       </svg>
 

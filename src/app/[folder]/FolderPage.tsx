@@ -223,6 +223,8 @@ export default function FolderPage() {
                   hathiCol={ctx.hathiPos.col}
                   hathiDir={ctx.hathiPos.dir}
                   bgColor={ctx.ui.surface2}
+                  speech={ctx.hathiSpeech}
+                  onSpeechDone={() => ctx.setHathiSpeech(null)}
                 />
               </div>
               <div
