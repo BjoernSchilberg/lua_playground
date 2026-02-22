@@ -70,6 +70,9 @@ export function useThemePalette({
       { id: "run:start", label: "Run", category: "Lua", shortcut: "Ctrl+Enter" },
       { id: "run:stop", label: "Stop", category: "Lua" },
       { id: "run:reset", label: "Reset", category: "Lua" },
+      { id: "clipboard:copy", label: "Copy", category: "Clipboard", shortcut: "Ctrl+C" },
+      { id: "clipboard:cut", label: "Cut", category: "Clipboard", shortcut: "Ctrl+X" },
+      { id: "clipboard:paste", label: "Paste", category: "Clipboard", shortcut: "Ctrl+V" },
       { id: "file:new", label: "Neu", category: "File" },
       { id: "file:save", label: "Speichern…", category: "File" },
       { id: "file:download", label: "Download .lua", category: "File" },
@@ -180,6 +183,51 @@ export function useThemePalette({
     }
     if (id === "run:reset") {
       onReset();
+      setPaletteOpen(false);
+      return;
+    }
+    if (id === "clipboard:copy") {
+      const ed = editorRef.current;
+      if (ed) {
+        const sel = ed.getSelection();
+        if (sel) {
+          const text = ed.getModel()?.getValueInRange(sel) ?? "";
+          navigator.clipboard.writeText(text).catch(() => {});
+        }
+      }
+      setPaletteOpen(false);
+      return;
+    }
+    if (id === "clipboard:cut") {
+      const ed = editorRef.current;
+      if (ed) {
+        const sel = ed.getSelection();
+        if (sel) {
+          const text = ed.getModel()?.getValueInRange(sel) ?? "";
+          navigator.clipboard.writeText(text).catch(() => {});
+          ed.executeEdits("clipboard-cut", [
+            { range: sel, text: "", forceMoveMarkers: true },
+          ]);
+        }
+      }
+      setPaletteOpen(false);
+      return;
+    }
+    if (id === "clipboard:paste") {
+      const ed = editorRef.current;
+      if (ed) {
+        try {
+          const text = await navigator.clipboard.readText();
+          if (text) {
+            const sel = ed.getSelection();
+            if (sel) {
+              ed.executeEdits("clipboard-paste", [
+                { range: sel, text, forceMoveMarkers: true },
+              ]);
+            }
+          }
+        } catch { /* clipboard permission denied */ }
+      }
       setPaletteOpen(false);
       return;
     }
