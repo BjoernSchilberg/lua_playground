@@ -653,6 +653,28 @@ self.onmessage = async (e: MessageEvent<MsgToWorker>) => {
         }
         // Pop the preamble thread from the stack
         bridge!.pop(L, 1);
+
+        // If a level was provided, inject hathi.loadLevel() into the REPL VM
+        if (msg.level) {
+          const levelCode = `hathi.loadLevel({${msg.level.map((r) => `"${r}"`).join(",")}})`;
+          const lvCo = bridge!.newthread(L);
+          const lvStatus = bridge!.load(lvCo, levelCode);
+          if (lvStatus === 0) {
+            // Need hook so the coroutine.yield inside loadLevel works
+            bridge!.set_step_mode(0);
+            bridge!.setup_hook(L, lvCo, TIMESLICE_COUNT);
+            // Run until finished (loadLevel yields __world_init, then finishes)
+            let rs = bridge!.resume(lvCo, L, 0);
+            while (rs === 1) {
+              // Consume yields (like __world_init) without posting to UI
+              const nr = bridge!.get_nresults();
+              if (nr > 0) bridge!.pop(lvCo, nr);
+              rs = bridge!.resume(lvCo, L, 0);
+            }
+          }
+          bridge!.pop(L, 1); // pop level thread
+        }
+
         replActive = true;
       }
 

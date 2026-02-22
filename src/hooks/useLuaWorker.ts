@@ -262,7 +262,7 @@ export function useLuaWorker(
     replBufferRef.current = fullCode;
     replHistoryIdxRef.current = -1;
     setInputValue("");
-    workerRef.current?.replEval(fullCode);
+    workerRef.current?.replEval(fullCode, levelRowsRef.current ?? undefined);
   }, [replMode, inputValue]);
 
   const handleReplKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
