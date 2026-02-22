@@ -409,17 +409,17 @@ export default function IsometricWorld({
         />
         {/* Speech bubble above Hathi */}
         {speech && (
-          <g transform={`translate(${hathiX + SVG_W / 2}, ${hathiY + 20})`}>
+          <g transform={`translate(${hathiX + SVG_W / 2}, ${hathiY + 75})`}>
             <rect
               x="-60" y="-42" width="120" height="36" rx="12" ry="12"
-              fill="white" stroke="#333" strokeWidth="2"
+              fill="white" stroke="#333" strokeWidth="10"
             />
             {/* Tail triangle pointing down */}
-            <polygon points="-6,-6 6,-6 0,8" fill="white" stroke="#333" strokeWidth="2" strokeLinejoin="round" />
+            <polygon points="-6,-6 6,-6 0,8" fill="white" stroke="#333" strokeWidth="1" strokeLinejoin="round" />
             {/* White rect to cover the tail's top stroke overlapping the bubble */}
             <rect x="-7" y="-10" width="14" height="6" fill="white" />
             <text
-              x="0" y="-20"
+              x="0" y="-24"
               textAnchor="middle"
               dominantBaseline="central"
               fontSize="18"
