@@ -238,7 +238,7 @@ export default function IsometricWorld({
   /*  Build SVG elements                                              */
   /* ---------------------------------------------------------------- */
 
-  const { tilesBefore, tilesAfter, hathiSvgContent, hathiX, hathiY, viewBox } = useMemo(() => {
+  const { tilesBefore, tilesAfter, hathiSvgContent, hathiX, hathiY, viewBox, vbY: viewBoxTop } = useMemo(() => {
     if (!level || !svgsLoaded || level.length === 0) {
       return {
         tilesBefore: [] as React.ReactNode[],
@@ -247,6 +247,7 @@ export default function IsometricWorld({
         hathiX: 0,
         hathiY: 0,
         viewBox: "-200 -200 400 400",
+        vbY: -200,
       };
     }
 
@@ -363,6 +364,7 @@ export default function IsometricWorld({
       hathiX: hathiItem.x - halfW,
       hathiY: hathiItem.y - halfH,
       viewBox: `${vbX} ${vbY} ${vbW} ${vbH}`,
+      vbY,
     };
   }, [level, svgsLoaded, viewStep, animRow, animCol, hathiDir]);
 
@@ -372,7 +374,7 @@ export default function IsometricWorld({
 
   useEffect(() => {
     if (!speech) return;
-    const timer = setTimeout(() => onSpeechDone?.(), 1800);
+    const timer = setTimeout(() => onSpeechDone?.(), 7500); // 7.5sec.
     return () => clearTimeout(timer);
   }, [speech, onSpeechDone]);
 
@@ -408,29 +410,62 @@ export default function IsometricWorld({
           dangerouslySetInnerHTML={{ __html: hathiSvgContent }}
         />
         {/* Speech bubble above Hathi */}
-        {speech && (
-          <g transform={`translate(${hathiX + SVG_W / 2}, ${hathiY + 75})`}>
-            <rect
-              x="-60" y="-42" width="120" height="36" rx="12" ry="12"
-              fill="white" stroke="#333" strokeWidth="10"
-            />
-            {/* Tail triangle pointing down */}
-            <polygon points="-6,-6 6,-6 0,8" fill="white" stroke="#333" strokeWidth="1" strokeLinejoin="round" />
-            {/* White rect to cover the tail's top stroke overlapping the bubble */}
-            <rect x="-7" y="-10" width="14" height="6" fill="white" />
-            <text
-              x="0" y="-24"
-              textAnchor="middle"
-              dominantBaseline="central"
-              fontSize="18"
-              fontFamily="system-ui, sans-serif"
-              fontWeight="bold"
-              fill="#333"
-            >
-              {speech}
-            </text>
-          </g>
-        )}
+        {speech && (() => {
+          const bubbleW = 240;
+          const tailTipY = hathiY + 83;
+          const foX = hathiX + SVG_W / 2 - bubbleW / 2;
+          // Clamp top to viewBox so bubble stays inside the panel
+          const minY = viewBoxTop + 4;
+          const idealFoY = tailTipY - 300;
+          const foY = Math.max(idealFoY, minY);
+          const foH = tailTipY - foY;
+          return (
+            <foreignObject x={foX} y={foY} width={bubbleW} height={foH} style={{ overflow: "visible", pointerEvents: "none" }}>
+              <div style={{
+                width: "100%", height: "100%",
+                display: "flex", flexDirection: "column",
+                justifyContent: "flex-end", alignItems: "center",
+              }}>
+                <div className="speech-bubble" style={{
+                  background: "white",
+                  border: "3px solid #333",
+                  borderRadius: "12px",
+                  padding: "10px 12px",
+                  maxWidth: `${bubbleW - 20}px`,
+                  maxHeight: `${foH - 30}px`,
+                  fontSize: "16px",
+                  fontFamily: "system-ui, sans-serif",
+                  fontWeight: "bold",
+                  color: "#333",
+                  textAlign: "left",
+                  overflowWrap: "break-word",
+                  wordBreak: "break-word",
+                  pointerEvents: "auto",
+                }}>
+                  {speech}
+                </div>
+                {/* Tail triangle via CSS borders */}
+                <div style={{
+                  width: 0, height: 0,
+                  borderLeft: "8px solid transparent",
+                  borderRight: "8px solid transparent",
+                  borderTop: "10px solid #333",
+                  position: "relative",
+                }}>
+                  <div style={{
+                    position: "absolute",
+                    top: "-12px",
+                    left: "-6px",
+                    width: 0, height: 0,
+                    borderLeft: "6px solid transparent",
+                    borderRight: "6px solid transparent",
+                    borderTop: "8px solid white",
+                  }} />
+                </div>
+              </div>
+            </foreignObject>
+          );
+        })()}
         {tilesAfter}
       </svg>
 

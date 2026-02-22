@@ -26,6 +26,26 @@ body {
   overflow: hidden;
 }
 
+/* Speech bubble: thin scrollbar visible only on hover */
+.speech-bubble {
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0,0,0,0.3) transparent;
+}
+.speech-bubble:hover {
+  overflow-y: auto;
+}
+.speech-bubble::-webkit-scrollbar {
+  width: 5px;
+}
+.speech-bubble::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.3);
+  border-radius: 4px;
+}
+.speech-bubble::-webkit-scrollbar-track {
+  background: transparent;
+}
+
 /* iOS Safari: 100vh includes area behind URL bar. dvh fixes it. */
 .h-dvh {
   height: 100vh;
