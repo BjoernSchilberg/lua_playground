@@ -1,15 +1,30 @@
 #!/usr/bin/env bash
-# Post-build: copy the [folder]/index.html as a fallback for sub-slug URLs.
-# On GitHub Pages, /tutorial/some-slug will 404 because there's no matching file.
-# This script copies tutorial/index.html → tutorial/404.html and creates a
-# generic 404.html that redirects to the SPA with the original path preserved.
+# Post-build: fix GitHub Pages routing for Next.js static export.
+#
+# 1. For each <dir>/  that has a matching <dir>.html at the same level,
+#    copy <dir>.html → <dir>/index.html  (so /test/ serves test/index.html).
+# 2. Same for nested slug dirs: <dir>/<slug>.html → <dir>/<slug>/index.html
+# 3. Create a generic 404.html SPA redirect that preserves the URL path.
 
 set -e
 
 OUT_DIR="${1:-out}"
 BASE_PATH="${2:-}"
 
-# Create a 404.html at the root that redirects to the SPA
+# ---- Step 1: Create index.html inside each folder/slug directory ----
+# Find all *.html files in out/ (up to 3 levels) that have a matching directory
+find "$OUT_DIR" -maxdepth 3 -name "*.html" -not -name "index.html" -not -name "404.html" -not -name "_not-found.html" | while read -r htmlfile; do
+  dirname_of=$(dirname "$htmlfile")
+  basename_noext=$(basename "$htmlfile" .html)
+  target_dir="$dirname_of/$basename_noext"
+
+  if [ -d "$target_dir" ] && [ ! -f "$target_dir/index.html" ]; then
+    cp "$htmlfile" "$target_dir/index.html"
+    echo "  Copied $(basename "$htmlfile") → $basename_noext/index.html"
+  fi
+done
+
+# ---- Step 2: Create 404.html SPA redirect ----
 cat > "$OUT_DIR/404.html" << 'HEREDOC'
 <!DOCTYPE html>
 <html>
