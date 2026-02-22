@@ -141,12 +141,13 @@ export function useLuaWorker(
   /* ---- Actions ---- */
 
   const formatEditorCode = (): string => {
+    const model = editorRef.current?.getModel();
+    const currentCode = model?.getValue() ?? "";
     const fmt = luaFmtRef.current;
     if (fmt) {
       try {
-        const formatted = fmt(code);
-        if (formatted !== code) {
-          const model = editorRef.current?.getModel();
+        const formatted = fmt(currentCode);
+        if (formatted !== currentCode) {
           if (model) {
             model.pushEditOperations(
               [],
@@ -161,7 +162,7 @@ export function useLuaWorker(
         /* syntax error — run unformatted */
       }
     }
-    return code;
+    return currentCode;
   };
 
   const handleRun = () => {

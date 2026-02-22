@@ -65,8 +65,17 @@ export default function PlaygroundLayout({
   const decorationsRef = useRef<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+  /* ---- External code setter: updates both React state AND editor model ---- */
+  const setCodeExt = useCallback((v: string) => {
+    setCode(v);
+    const model = editorRef.current?.getModel();
+    if (model && model.getValue() !== v) {
+      model.setValue(v);
+    }
+  }, []);
+
   /* ---- Hooks ---- */
-  const worker = useLuaWorker(code, setCode, editorRef, luaFmtRef);
+  const worker = useLuaWorker(code, setCodeExt, editorRef, luaFmtRef);
   const resize = usePanelResize();
 
   const toggleVim = useCallback(() => setVimEnabled((v) => !v), []);
@@ -87,7 +96,7 @@ export default function PlaygroundLayout({
     lineNumbers,
     showWorld: worker.showWorld,
     currentFileName,
-    setCode,
+    setCode: setCodeExt,
     editorRef,
     luaFmtRef,
     onRun: worker.handleRun,
@@ -314,7 +323,7 @@ export default function PlaygroundLayout({
   /* ---- Context for right panel render prop ---- */
   const ctx: PlaygroundContext = {
     code,
-    setCode,
+    setCode: setCodeExt,
     handleRun: worker.handleRun,
     setConsoleLines: worker.setConsoleLines,
     ui,
@@ -334,7 +343,7 @@ export default function PlaygroundLayout({
       <div className="flex flex-col min-h-0 min-w-0" style={{ width: showRight ? `${resize.editorWidthPct}%` : "100%" }}>
         <Toolbar
           code={code}
-          setCode={setCode}
+          setCode={setCodeExt}
           currentFileName={currentFileName}
           setCurrentFileName={setCurrentFileName}
           ready={worker.ready}

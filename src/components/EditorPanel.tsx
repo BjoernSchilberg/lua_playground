@@ -37,7 +37,7 @@ export default function EditorPanel({
         <MonacoEditor
           language="lua"
           theme={editorTheme}
-          value={code}
+          defaultValue={code}
           onChange={(v) => setCode(v ?? "")}
           onMount={onMount}
           options={{
