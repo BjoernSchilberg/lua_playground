@@ -15,6 +15,7 @@ interface UseThemePaletteOptions {
   luaFmtRef: React.RefObject<((code: string) => string) | null>;
   /* Callbacks from other hooks/page for palette dispatch */
   onRun: () => void;
+  onStep: () => void;
   onStop: () => void;
   onReset: () => void;
   onToggleVim: () => void;
@@ -32,6 +33,7 @@ export function useThemePalette({
   editorRef,
   luaFmtRef,
   onRun,
+  onStep,
   onStop,
   onReset,
   onToggleVim,
@@ -68,6 +70,7 @@ export function useThemePalette({
   const paletteItems: PaletteItem[] = useMemo(
     () => [
       { id: "run:start", label: "Run", category: "Lua", shortcut: "Ctrl+Enter" },
+      { id: "run:step", label: "Step (Einzelschritt)", category: "Lua", shortcut: "F10" },
       { id: "run:stop", label: "Stop", category: "Lua" },
       { id: "run:reset", label: "Reset", category: "Lua" },
       { id: "clipboard:copy", label: "Copy", category: "Clipboard", shortcut: "Ctrl+C" },
@@ -176,6 +179,11 @@ export function useThemePalette({
       setPaletteOpen(false);
       return;
     }
+    if (id === "run:step") {
+      onStep();
+      setPaletteOpen(false);
+      return;
+    }
     if (id === "run:stop") {
       onStop();
       setPaletteOpen(false);
@@ -259,7 +267,7 @@ export function useThemePalette({
     applyThemeColors(themeId, data);
     themeBeforePalette.current = themeId;
     setPaletteOpen(false);
-  }, [themeList, applyThemeColors, currentFileName, setCode, editorRef, luaFmtRef, onRun, onStop, onReset, onToggleVim, onToggleLineNumbers, onToggleWorld, onUploadClick]);
+  }, [themeList, applyThemeColors, currentFileName, setCode, editorRef, luaFmtRef, onRun, onStep, onStop, onReset, onToggleVim, onToggleLineNumbers, onToggleWorld, onUploadClick]);
 
   const handlePaletteHighlight = useCallback(async (id: string) => {
     if (!id.startsWith("theme:")) return;

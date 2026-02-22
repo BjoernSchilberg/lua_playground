@@ -100,6 +100,7 @@ export default function PlaygroundLayout({
     editorRef,
     luaFmtRef,
     onRun: worker.handleRun,
+    onStep: worker.handleStep,
     onStop: worker.handleStop,
     onReset: worker.handleReset,
     onToggleVim: toggleVim,
