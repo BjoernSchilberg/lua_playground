@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { LuaWorkerClient } from "@/lib/workerClient";
 import type { MsgFromWorker, WorkerState } from "@/lib/protocol";
 import type { editor } from "monaco-editor";
+import { useSpeech } from "@/hooks/useSpeech";
 
 export function useLuaWorker(
   code: string,
@@ -27,6 +28,9 @@ export function useLuaWorker(
   const [hathiPos, setHathiPos] = useState({ row: 0, col: 0, dir: 1 });
   const [hathiSpeech, setHathiSpeech] = useState<string | null>(null);
   const [hathiSpeechAudio, setHathiSpeechAudio] = useState(false);
+  const speech = useSpeech();
+  const speechRef = useRef(speech);
+  speechRef.current = speech;
   /** Raw level rows (with 'H') so we can re-send them to the worker on each RUN/STEP */
   const levelRowsRef = useRef<string[] | null>(null);
 
@@ -85,15 +89,13 @@ export function useLuaWorker(
             setHathiPos({ row: p.row, col: p.col, dir: p.dir });
           } else if (p.kind === "speak") {
             setHathiSpeech(p.text);
-            if (p.audio && typeof window !== "undefined" && window.speechSynthesis) {
-              window.speechSynthesis.cancel();
+            if (p.audio) {
               setHathiSpeechAudio(true);
-              const utter = new SpeechSynthesisUtterance(p.text);
-              utter.lang = "de-DE";
-              utter.rate = 1;
-              utter.onend = () => { setHathiSpeech(null); setHathiSpeechAudio(false); };
-              utter.onerror = () => { setHathiSpeech(null); setHathiSpeechAudio(false); };
-              window.speechSynthesis.speak(utter);
+              speechRef.current.speak({
+                text: p.text,
+                onEnd: () => { setHathiSpeech(null); setHathiSpeechAudio(false); },
+                onError: () => { setHathiSpeech(null); setHathiSpeechAudio(false); },
+              });
             } else {
               setHathiSpeechAudio(false);
             }
