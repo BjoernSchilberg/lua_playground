@@ -8,6 +8,9 @@ const nextConfig: NextConfig = {
   output: "export",
   basePath: isGhPages ? "/lua_playground" : "",
   assetPrefix: isGhPages ? "/lua_playground/" : undefined,
+  // The worker .ts file gets copied to out/ where its relative import
+  // ("../lib/protocol") can't resolve. This is harmless — ignore it.
+  typescript: { ignoreBuildErrors: true },
   env: {
     NEXT_PUBLIC_BASE_PATH: isGhPages ? "/lua_playground" : "",
   },

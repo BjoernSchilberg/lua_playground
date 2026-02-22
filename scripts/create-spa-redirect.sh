@@ -46,6 +46,9 @@ cat > "$OUT_DIR/404.html" << 'HEREDOC'
     if (segments.length >= 2) {
       var target = base + '/' + segments[0] + '/?slug=' + encodeURIComponent(segments[1]) + window.location.hash;
       window.location.replace(target);
+    } else if (segments.length === 1) {
+      // Single segment (e.g. /test, /hathi) → redirect to the folder page
+      window.location.replace(base + '/' + segments[0] + '/');
     } else {
       // Unknown path, go home
       window.location.replace(base + '/');
