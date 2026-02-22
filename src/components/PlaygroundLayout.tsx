@@ -32,6 +32,8 @@ export interface PlaygroundContext {
   /** Speech bubble text shown over Hathi (null = hidden) */
   hathiSpeech: string | null;
   setHathiSpeech: (v: string | null) => void;
+  /** Whether the current speech bubble is being spoken as audio */
+  hathiSpeechAudio: boolean;
   /** Load a level from parsed rows (e.g. ["HggF"]) into the world panel */
   loadLevel: (rows: string[]) => void;
 }
@@ -339,6 +341,7 @@ export default function PlaygroundLayout({
     hathiPos: worker.hathiPos,
     hathiSpeech: worker.hathiSpeech,
     setHathiSpeech: worker.setHathiSpeech,
+    hathiSpeechAudio: worker.hathiSpeechAudio,
     loadLevel: worker.loadLevel,
   };
 

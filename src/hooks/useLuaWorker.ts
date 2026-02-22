@@ -26,6 +26,7 @@ export function useLuaWorker(
   const [worldLevel, setWorldLevel] = useState<string[] | null>(null);
   const [hathiPos, setHathiPos] = useState({ row: 0, col: 0, dir: 1 });
   const [hathiSpeech, setHathiSpeech] = useState<string | null>(null);
+  const [hathiSpeechAudio, setHathiSpeechAudio] = useState(false);
   /** Raw level rows (with 'H') so we can re-send them to the worker on each RUN/STEP */
   const levelRowsRef = useRef<string[] | null>(null);
 
@@ -84,6 +85,18 @@ export function useLuaWorker(
             setHathiPos({ row: p.row, col: p.col, dir: p.dir });
           } else if (p.kind === "speak") {
             setHathiSpeech(p.text);
+            if (p.audio && typeof window !== "undefined" && window.speechSynthesis) {
+              window.speechSynthesis.cancel();
+              setHathiSpeechAudio(true);
+              const utter = new SpeechSynthesisUtterance(p.text);
+              utter.lang = "de-DE";
+              utter.rate = 1;
+              utter.onend = () => { setHathiSpeech(null); setHathiSpeechAudio(false); };
+              utter.onerror = () => { setHathiSpeech(null); setHathiSpeechAudio(false); };
+              window.speechSynthesis.speak(utter);
+            } else {
+              setHathiSpeechAudio(false);
+            }
           } else if (p.kind === "tile") {
             setWorldLevel((prev) => {
               if (!prev) return prev;
@@ -525,6 +538,7 @@ export function useLuaWorker(
     hathiPos,
     hathiSpeech,
     setHathiSpeech,
+    hathiSpeechAudio,
     pausedLine,
     setPausedLine,
     // Refs

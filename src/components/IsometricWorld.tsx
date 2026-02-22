@@ -129,6 +129,8 @@ export interface IsometricWorldProps {
   bgColor: string;
   /** Speech bubble text shown above Hathi (null = hidden) */
   speech?: string | null;
+  /** Whether the speech is being played as audio (skip auto-dismiss timer) */
+  speechAudio?: boolean;
   /** Called when the speech bubble auto-dismisses */
   onSpeechDone?: () => void;
 }
@@ -144,6 +146,7 @@ export default function IsometricWorld({
   hathiDir,
   bgColor,
   speech,
+  speechAudio,
   onSpeechDone,
 }: IsometricWorldProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -373,10 +376,10 @@ export default function IsometricWorld({
   /* ---------------------------------------------------------------- */
 
   useEffect(() => {
-    if (!speech) return;
+    if (!speech || speechAudio) return; // audio: dismissed by utterance.onend
     const timer = setTimeout(() => onSpeechDone?.(), 7500); // 7.5sec.
     return () => clearTimeout(timer);
-  }, [speech, onSpeechDone]);
+  }, [speech, speechAudio, onSpeechDone]);
 
   /* ---------------------------------------------------------------- */
   /*  Render                                                          */

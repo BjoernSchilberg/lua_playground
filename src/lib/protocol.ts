@@ -25,7 +25,7 @@ export type MsgToWorker =
 export type WorldPatch =
   | { kind: "hathi"; row: number; col: number; dir: number }
   | { kind: "tile"; row: number; col: number; tile: string }
-  | { kind: "speak"; text: string };
+  | { kind: "speak"; text: string; audio?: boolean };
 
 /* Messages sent FROM the worker */
 export type MsgFromWorker =

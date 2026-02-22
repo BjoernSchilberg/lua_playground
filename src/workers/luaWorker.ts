@@ -199,8 +199,8 @@ function hathi.raiseFlag()
   return true
 end
 
-function hathi.speak(text)
-  coroutine.yield("__hathi:speak", tostring(text))
+function hathi.speak(text, audio)
+  coroutine.yield("__hathi:speak", tostring(text), audio and "1" or "0")
 end
 `;
 
@@ -453,9 +453,12 @@ function tick() {
 
     if (yieldTag === "__hathi:speak") {
       const text = nresults >= 2 ? (bridge.tostring(co, -nresults + 1) ?? "") : "";
+      const audioFlag = nresults >= 3 ? (bridge.tostring(co, -nresults + 2) === "1") : false;
       bridge.pop(co, nresults);
-      post({ type: "WORLD_PATCH", patches: [{ kind: "speak", text }] });
-      schedulerTimer = setTimeout(tick, 1200);
+      post({ type: "WORLD_PATCH", patches: [{ kind: "speak", text, audio: audioFlag }] });
+      // If audio requested, estimate ~80ms per char; otherwise fixed 1.2s
+      const delay = audioFlag ? Math.max(1500, text.length * 80) : 1200;
+      schedulerTimer = setTimeout(tick, delay);
       return;
     }
 
