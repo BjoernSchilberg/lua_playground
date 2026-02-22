@@ -219,6 +219,37 @@ hathi.richtung      = hathi.getDir
 hathi.zeile         = hathi.getRow
 hathi.spalte        = hathi.getCol
 hathi.ladeLevel     = hathi.loadLevel
+
+function hathi.help()
+  local methods = {
+    {"forward(n)",    "geheVor(n)",     "n Schritte vor (Standard: 1)"},
+    {"turnLeft()",    "dreheLinks()",   "Nach links drehen"},
+    {"turnRight()",   "dreheRechts()",  "Nach rechts drehen"},
+    {"pick()",        "hebeAuf()",      "Gegenstand aufheben"},
+    {"put(ch)",       "legeAb(ch)",     "Gegenstand ablegen"},
+    {"isWall()",      "istWand()",      "Ist vor Hathi eine Wand?"},
+    {"raiseFlag()",   "hisseFlagge()",  "Flagge vor Hathi hissen"},
+    {"speak(t,a)",    "sage(t,a)",      "Sprechblase (a=true fuer Audio)"},
+    {"getDir()",      "richtung()",     "Blickrichtung (0=N 1=O 2=S 3=W)"},
+    {"getRow()",      "zeile()",        "Aktuelle Zeile"},
+    {"getCol()",      "spalte()",       "Aktuelle Spalte"},
+    {"loadLevel(t)",  "ladeLevel(t)",   "Level laden"},
+    {"help()",        "hilfe()",        "Diese Hilfe anzeigen"},
+  }
+  print("╔══════════════════════════════════════════════════════════════╗")
+  print("║                    Hathi – Befehle                         ║")
+  print("╠════════════════╤═════════════════╤═════════════════════════╣")
+  print("║ Englisch       │ Deutsch         │ Beschreibung            ║")
+  print("╠════════════════╪═════════════════╪═════════════════════════╣")
+  for _, m in ipairs(methods) do
+    local en  = m[1] .. string.rep(" ", 14 - #m[1])
+    local de  = m[2] .. string.rep(" ", 15 - #m[2])
+    local desc = m[3] .. string.rep(" ", 23 - #m[3])
+    print("║ " .. en .. " │ " .. de .. " │ " .. desc .. " ║")
+  end
+  print("╚════════════════╧═════════════════╧═════════════════════════╝")
+end
+hathi.hilfe = hathi.help
 `;
 
 /** Number of lines in the preamble – subtracted from error line numbers */
