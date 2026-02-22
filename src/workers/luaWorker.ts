@@ -119,10 +119,16 @@ function hathi.forward()
   local d = hathi._dir + 1
   local nr = hathi._row + _dr[d]
   local nc = hathi._col + _dc[d]
-  if nr < 0 or nr >= hathi._rows or nc < 0 or nc >= hathi._cols then return false end
-  -- check walkable (only water and rock block)
+  if nr < 0 or nr >= hathi._rows or nc < 0 or nc >= hathi._cols then
+    print("⛔ Hier geht's nicht weiter!")
+    return false
+  end
+  -- check walkable (only water, rock and flags block)
   local tile = hathi._level[nr + 1][nc + 1]
-  if tile == "w" or tile == "r" then return false end
+  if tile == "w" or tile == "r" or tile == "F" or tile == "G" then
+    print("⛔ Hier geht's nicht weiter!")
+    return false
+  end
   hathi._row = nr
   hathi._col = nc
   coroutine.yield("__hathi:move", nr .. "|" .. nc .. "|" .. hathi._dir)
@@ -176,7 +182,7 @@ function hathi.isWall()
   local nc = hathi._col + _dc[d]
   if nr < 0 or nr >= hathi._rows or nc < 0 or nc >= hathi._cols then return true end
   local tile = hathi._level[nr + 1][nc + 1]
-  return tile == "w" or tile == "r"
+  return tile == "w" or tile == "r" or tile == "F" or tile == "G"
 end
 
 function hathi.raiseFlag()
