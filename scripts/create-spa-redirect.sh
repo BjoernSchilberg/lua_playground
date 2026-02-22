@@ -33,24 +33,25 @@ cat > "$OUT_DIR/404.html" << 'HEREDOC'
   <title>Redirecting…</title>
   <script>
     // SPA redirect for GitHub Pages:
-    // Store the original path and redirect to the base page,
-    // which will pick it up and do client-side routing.
+    // Preserve the original path via query-param redirect so the SPA
+    // can do client-side routing.
     var base = "__BASE_PATH__";
     var path = window.location.pathname;
     if (base && path.startsWith(base)) {
       path = path.slice(base.length);
     }
-    // Encode the path into a query parameter and redirect to the folder root
     var segments = path.split('/').filter(Boolean);
-    // segments[0] = folder, segments[1] = slug
-    if (segments.length >= 2) {
-      var target = base + '/' + segments[0] + '/?slug=' + encodeURIComponent(segments[1]) + window.location.hash;
+    // Guard: if we already tried redirecting once, don't loop — go home.
+    if (window.location.search.indexOf('_spa=1') !== -1) {
+      window.location.replace(base + '/');
+    } else if (segments.length >= 2) {
+      // /folder/slug → /folder/?slug=slug&_spa=1
+      var target = base + '/' + segments[0] + '/?slug=' + encodeURIComponent(segments[1]) + '&_spa=1' + window.location.hash;
       window.location.replace(target);
     } else if (segments.length === 1) {
-      // Single segment (e.g. /test, /hathi) → redirect to the folder page
-      window.location.replace(base + '/' + segments[0] + '/');
+      // /test → /test/?_spa=1  (folder page)
+      window.location.replace(base + '/' + segments[0] + '/?_spa=1');
     } else {
-      // Unknown path, go home
       window.location.replace(base + '/');
     }
   </script>
