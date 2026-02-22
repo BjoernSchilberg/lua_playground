@@ -16,9 +16,9 @@ gggg
 
 
 ```lua
-hathi.forward()
-hathi.forward()
-hathi.raiseFlag()
+hathi.geheVor()
+hathi.geheVor()
+hathi.hisseFlagge()
 ```
 
 Um es auszuprobieren, musst Du das Programm ausführen. Das kannst Du

@@ -202,6 +202,20 @@ end
 function hathi.speak(text, audio)
   coroutine.yield("__hathi:speak", tostring(text), audio and "1" or "0")
 end
+
+-- Deutsche Aliase
+hathi.geheVor       = hathi.forward
+hathi.dreheLinks    = hathi.turnLeft
+hathi.dreheRechts   = hathi.turnRight
+hathi.hebeAuf       = hathi.pick
+hathi.legeAb        = hathi.put
+hathi.istWand       = hathi.isWall
+hathi.hisseFlagge   = hathi.raiseFlag
+hathi.sage          = hathi.speak
+hathi.richtung      = hathi.getDir
+hathi.zeile         = hathi.getRow
+hathi.spalte        = hathi.getCol
+hathi.ladeLevel     = hathi.loadLevel
 `;
 
 /** Number of lines in the preamble – subtracted from error line numbers */
