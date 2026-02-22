@@ -115,26 +115,29 @@ function hathi.loadLevel(tbl)
   coroutine.yield("__world_init", table.concat(rows, "|") .. "|" .. startR .. "|" .. startC .. "|" .. hathi._dir)
 end
 
-function hathi.forward()
-  local d = hathi._dir + 1
-  local nr = hathi._row + _dr[d]
-  local nc = hathi._col + _dc[d]
-  if nr < 0 or nr >= hathi._rows or nc < 0 or nc >= hathi._cols then
-    print("⛔ Hier geht's nicht weiter!")
-    coroutine.yield("__hathi:speak", "Geht nicht!")
-    return false
+function hathi.forward(n)
+  n = n or 1
+  for i = 1, n do
+    local d = hathi._dir + 1
+    local nr = hathi._row + _dr[d]
+    local nc = hathi._col + _dc[d]
+    if nr < 0 or nr >= hathi._rows or nc < 0 or nc >= hathi._cols then
+      print("⛔ Hier geht's nicht weiter!")
+      coroutine.yield("__hathi:speak", "Geht nicht!")
+      return false, i - 1
+    end
+    -- check walkable (only water, rock and flags block)
+    local tile = hathi._level[nr + 1][nc + 1]
+    if tile == "w" or tile == "r" or tile == "F" or tile == "G" then
+      print("⛔ Hier geht's nicht weiter!")
+      coroutine.yield("__hathi:speak", "Geht nicht!")
+      return false, i - 1
+    end
+    hathi._row = nr
+    hathi._col = nc
+    coroutine.yield("__hathi:move", nr .. "|" .. nc .. "|" .. hathi._dir)
   end
-  -- check walkable (only water, rock and flags block)
-  local tile = hathi._level[nr + 1][nc + 1]
-  if tile == "w" or tile == "r" or tile == "F" or tile == "G" then
-    print("⛔ Hier geht's nicht weiter!")
-    coroutine.yield("__hathi:speak", "Geht nicht!")
-    return false
-  end
-  hathi._row = nr
-  hathi._col = nc
-  coroutine.yield("__hathi:move", nr .. "|" .. nc .. "|" .. hathi._dir)
-  return true
+  return true, n
 end
 
 function hathi.turnLeft()
