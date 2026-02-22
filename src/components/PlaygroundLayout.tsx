@@ -373,6 +373,7 @@ export default function PlaygroundLayout({
               ui={ui}
               onMount={handleEditorMount}
               vimStatusRef={vimStatusRef}
+              onContextMenu={theme.openPalette}
             />
           </div>
 

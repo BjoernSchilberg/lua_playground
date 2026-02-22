@@ -20,6 +20,7 @@ interface EditorPanelProps {
   ui: UiColors;
   onMount: (editor: editor.IStandaloneCodeEditor, monaco: Monaco) => void;
   vimStatusRef: React.RefObject<HTMLDivElement | null>;
+  onContextMenu?: () => void;
 }
 
 export default function EditorPanel({
@@ -30,10 +31,11 @@ export default function EditorPanel({
   ui,
   onMount,
   vimStatusRef,
+  onContextMenu,
 }: EditorPanelProps) {
   return (
     <>
-      <div className="flex-1 min-h-0">
+      <div className="flex-1 min-h-0" onContextMenu={(e) => { if (onContextMenu) { e.preventDefault(); onContextMenu(); } }}>
         <MonacoEditor
           language="lua"
           theme={editorTheme}
@@ -50,6 +52,7 @@ export default function EditorPanel({
             cursorStyle: "block",
             mouseWheelZoom: true,
             glyphMargin: true,
+            contextmenu: false,
           }}
         />
       </div>
