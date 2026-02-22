@@ -482,6 +482,27 @@ export function useLuaWorker(
     }
   }, [inputValue, toggleReplMode]);
 
+  /** Parse level rows (e.g. ["HggF", "gggg"]) and set world state directly */
+  const loadLevel = useCallback((rows: string[]) => {
+    let startR = 0, startC = 0;
+    const parsed = rows.map((row, r) => {
+      let out = "";
+      for (let c = 0; c < row.length; c++) {
+        if (row[c] === "H") {
+          startR = r;
+          startC = c;
+          out += "g";
+        } else {
+          out += row[c];
+        }
+      }
+      return out;
+    });
+    setWorldLevel(parsed);
+    setHathiPos({ row: startR, col: startC, dir: 1 });
+    setShowWorld(true);
+  }, []);
+
   return {
     // State
     consoleLines,
@@ -514,5 +535,6 @@ export function useLuaWorker(
     handleReplSubmit,
     handleReplKeyDown,
     replBufferRef,
+    loadLevel,
   };
 }

@@ -202,6 +202,7 @@ export default function FolderPage() {
               headings: headingsMap[m.file] ?? [],
             })) : undefined}
             onHashChange={handleHashChange}
+            onLoadLevel={ctx.loadLevel}
           />
         ) : (
           <div

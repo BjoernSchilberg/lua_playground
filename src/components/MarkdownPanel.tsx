@@ -97,6 +97,8 @@ export interface MarkdownPanelProps {
   onScrollToHeading?: (id: string) => void;
   /** Called when a #fragment anchor is clicked so the parent can update the URL */
   onHashChange?: (id: string) => void;
+  /** Called when a ```level block is found — receives the level rows */
+  onLoadLevel?: (rows: string[]) => void;
 }
 
 /* ------------------------------------------------------------------ */
@@ -113,6 +115,7 @@ export default function MarkdownPanel({
   toc,
   onScrollToHeading,
   onHashChange,
+  onLoadLevel,
 }: MarkdownPanelProps) {
   const [markdown, setMarkdown] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -197,6 +200,20 @@ export default function MarkdownPanel({
     if (onScrollToHeading) return; // managed via pendingScrollRef
   }, [onScrollToHeading]);
 
+  /* Extract and load level blocks from markdown */
+  useEffect(() => {
+    if (!markdown || !onLoadLevel) return;
+    const levelRegex = /```level\n([\s\S]*?)```/g;
+    let match;
+    while ((match = levelRegex.exec(markdown)) !== null) {
+      const rows = match[1].trim().split("\n").map((r) => r.trim()).filter(Boolean);
+      if (rows.length > 0) {
+        onLoadLevel(rows);
+        break; // load only the first level block found
+      }
+    }
+  }, [markdown, onLoadLevel]);
+
   /* Stable callback ref for code blocks */
   const handleLoadCode = useCallback(
     (code: string) => {
@@ -247,6 +264,12 @@ export default function MarkdownPanel({
     h3({ children, ...rest }) { return <HeadingWithAnchor level={3} {...rest}>{children}</HeadingWithAnchor>; },
     // Wrap fenced code blocks with a "load into editor" button
     pre({ children, ...rest }) {
+      // Hide level blocks entirely (content is loaded via useEffect)
+      const child = React.Children.toArray(children)[0];
+      if (React.isValidElement(child)) {
+        const cls = (child.props as { className?: string }).className ?? "";
+        if (cls.includes("language-level")) return null;
+      }
       return (
         <div className="md-code-wrapper">
           <pre {...rest}>{children}</pre>
@@ -255,6 +278,10 @@ export default function MarkdownPanel({
     },
     code({ className, children, ...rest }) {
       const isLua = className?.includes("language-lua");
+      const isLevel = className?.includes("language-level");
+
+      // Hide level blocks (they are loaded via useEffect)
+      if (isLevel) return null;
 
       // Inline code (no className from highlight)
       if (!className) {
