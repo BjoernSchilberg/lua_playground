@@ -68,7 +68,7 @@ export function useLuaWorker(
       case "ERROR":
         setConsoleLines((prev) => [
           ...prev,
-          { text: `Error: ${msg.message}`, isError: true },
+          { text: `Error: ${msg.message}\n`, isError: true },
         ]);
         // Clear REPL buffer on error (save to history if non-empty)
         if (replBufferRef.current.trim()) {
