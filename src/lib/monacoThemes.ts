@@ -17,8 +17,8 @@ export interface ThemeEntry {
 
 /** Built-in Monaco themes (no JSON file needed) */
 const BUILTIN_THEMES: ThemeEntry[] = [
-  { id: "vs-dark", label: "VS Dark (default)", file: "" },
-  { id: "vs", label: "VS Light", file: "" },
+  { id: "vs-dark", label: "VS Dark", file: "" },
+  { id: "vs", label: "VS Light (default)", file: "" },
   { id: "hc-black", label: "High Contrast", file: "" },
 ];
 

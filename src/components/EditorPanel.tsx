@@ -10,14 +10,7 @@ const MonacoEditor = dynamic(
     mod.loader.config({ paths: { vs: `${basePath}/vs` } });
     return mod;
   },
-  {
-    ssr: false,
-    loading: () => (
-      <div className="flex items-center justify-center h-full bg-[#1e1e1e] text-neutral-500">
-        Loading editor…
-      </div>
-    ),
-  },
+  { ssr: false },
 );
 
 interface EditorPanelProps {
@@ -45,6 +38,14 @@ export default function EditorPanel({
     <>
       <div className="flex-1 min-h-0" onContextMenu={(e) => { if (onContextMenu) { e.preventDefault(); onContextMenu(); } }}>
         <MonacoEditor
+          loading={
+            <div
+              className="flex items-center justify-center h-full"
+              style={{ backgroundColor: ui.bg, color: ui.fg }}
+            >
+              Loading editor…
+            </div>
+          }
           language="lua"
           theme={editorTheme}
           defaultValue={code}

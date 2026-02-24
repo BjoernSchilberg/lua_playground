@@ -41,15 +41,17 @@ export function useThemePalette({
   onToggleWorld,
   onUploadClick,
 }: UseThemePaletteOptions) {
-  const [editorTheme, setEditorTheme] = useState("vs-dark");
+  const [editorTheme, setEditorTheme] = useState("vs");
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [themeList, setThemeList] = useState<ThemeEntry[]>([]);
   const monacoRef = useRef<Monaco | null>(null);
   const definedThemes = useRef(new Set<string>());
 
   /* ---- Adaptive UI colours ---- */
-  const [themeBg, setThemeBg] = useState("#1e1e1e");
-  const [themeFg, setThemeFg] = useState("#d4d4d4");
+  const INITIAL_THEME = "vs";
+  const { bg: initialBg, fg: initialFg } = getThemeColors(INITIAL_THEME);
+  const [themeBg, setThemeBg] = useState(initialBg);
+  const [themeFg, setThemeFg] = useState(initialFg);
   const ui = useMemo(() => deriveUiColors(themeBg, themeFg), [themeBg, themeFg]);
 
   const applyThemeColors = useCallback(
@@ -92,7 +94,7 @@ export function useThemePalette({
     [themeList, vimEnabled, lineNumbers, showWorld]
   );
 
-  const themeBeforePalette = useRef("vs-dark");
+  const themeBeforePalette = useRef("vs");
 
   const openPalette = useCallback(() => {
     themeBeforePalette.current = editorTheme;
