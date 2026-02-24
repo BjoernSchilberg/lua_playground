@@ -194,11 +194,20 @@ function hathi.raiseFlag()
   local d = hathi._dir + 1
   local nr = hathi._row + _dr[d]
   local nc = hathi._col + _dc[d]
-  if nr < 0 or nr >= hathi._rows or nc < 0 or nc >= hathi._cols then return false end
+  if nr < 0 or nr >= hathi._rows or nc < 0 or nc >= hathi._cols then
+    print(0)
+    coroutine.yield("__hathi:speak", "Geht nicht!")
+    return false
+  end
   local tile = hathi._level[nr + 1][nc + 1]
-  if tile ~= "F" then return false end
+  if tile ~= "F" then
+    print(0)
+    coroutine.yield("__hathi:speak", "Geht nicht!")
+    return false
+  end
   hathi._level[nr + 1][nc + 1] = "G"
   coroutine.yield("__hathi:tile", nr .. "|" .. nc .. "|G")
+  print(1)
   return true
 end
 
