@@ -1,12 +1,37 @@
 [
     {
+        "slug": "einfuehrung-lua00",
+        "title": "Einstieg1",
+        "file": "einfuehrung_lua00.md"
+    },
+    {
         "slug": "einfuehrung-lua01",
-        "title": "Einführung in Lua",
+        "title": "Zahlen, Texte und Variablen",
         "file": "einfuehrung_lua01.md"
     },
     {
         "slug": "einfuehrung-lua02",
-        "title": "Funktionsaufrufe und Rückgabewerte",
+        "title": "Eingaben und Bedingungen",
         "file": "einfuehrung_lua02.md"
+    },
+    {
+        "slug": "einfuehrung-lua03",
+        "title": "Schleifen",
+        "file": "einfuehrung_lua03.md"
+    },
+    {
+        "slug": "einfuehrung-lua04",
+        "title": "Funktionsaufrufe und Rückgabewerte",
+        "file": "einfuehrung_lua04.md"
+    },
+    {
+        "slug": "einfuehrung-lua05_01",
+        "title": "Tabellen als Listen und Wörterbücher",
+        "file": "einfuehrung_lua05_01.md"
+    },
+    {
+        "slug": "einfuehrung-lua05_02",
+        "title": "Tabellen als Objekte",
+        "file": "einfuehrung_lua05_02.md"
     }
 ]

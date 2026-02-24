@@ -1,160 +1,295 @@
-# Lua – Funktionen (Lektion)
+# Text eingeben, Zahlen umwandeln und Bedingungen (Lua)
 
-Wir haben bereits ab der ersten Lektion Funktionen verwendet:
 
-- `print()`
-- `type()`
-- `io.read()`
-- `tonumber()`
-- `math.random()`
+<!-- mtoc-start -->
 
-Du kannst Dir eine Funktion wie eine Portion Code vorstellen, die Du zum wiederholten Ausführen zusammenfasst. Genau so gut und richtig ist die Idee, eine Funktion als ein Unterprogramm zu sehen, das auf eine bestimmte Aufgabe spezialisiert ist. Anstatt an jeder Stelle, in der Du ihn brauchst, den kompletten Code hinzuschreiben, kannst Du ihn in eine Funktion verpacken und diese Funktion dann an beliebigen Stellen in Deinem Programm verwenden.
+* [Text eingeben](#text-eingeben)
+* [Strings in Zahlen umwandeln](#strings-in-zahlen-umwandeln)
+* [Aufgabe 1](#aufgabe-1)
+* [Bedingungen](#bedingungen)
+* [Vergleichsoperatoren](#vergleichsoperatoren)
+* [Zuweisung oder Vergleich](#zuweisung-oder-vergleich)
+* [Ein paar Fingerübungen mit Vergleichsoperatoren](#ein-paar-fingeruebungen-mit-vergleichsoperatoren)
+* [Bedingte Ausführung mit `if` und `else`](#bedingte-ausfuehrung-mit-if-und-else)
+* [Aufgabe 2](#aufgabe-2)
+* [Verschachtelte `if`-Anweisungen](#verschachtelte-if-anweisungen)
+* [Aufgabe 3](#aufgabe-3)
+* [Logische Operatoren](#logische-operatoren)
+* [Aufgabe 4](#aufgabe-4)
+* [Aufgabe 5](#aufgabe-5)
+* [Aufgabe 6](#aufgabe-6)
+* [Was wir hier ausgelassen haben](#was-wir-hier-ausgelassen-haben)
 
-Die Verwendung einer Funktion wird oft **Funktionsaufruf** genannt. Ein Funktionsaufruf besteht im Normalfall aus dem Namen der Funktion und einem Paar runder Klammern. Zwischen den Klammern stehen oft ein oder mehrere **Argumente**. Argumente sind Werte, welche genauer beschreiben, was die Funktion machen soll.
+<!-- mtoc-end -->
+
+## Text eingeben
+
+Selbstverständlich ist es auch möglich, Eingaben von Nutzerinnen zu
+verarbeiten. Das erledigt die Funktion `io.read()`. Diese liefert einen
+Rückgabewert, welchen ihr zur weiteren Verarbeitung unter einer Variablen
+speichern könnt.
+
+Das passiert auch in dem folgenden Programmbeispiel. Es fragt nach einen Namen.
+Die Eingabe wird hier der Variable `name` zugewiesen.
+Die letzte Zeile verwendet `name`, um eine „persönliche“ Begrüßung
+auszugeben.
+
+```lua
+print("Wie heißt Du?")
+name = io.read()
+print("Hallo " .. name .. "!")
+```
+
+Wenn ihr das Programm startet, dann sieht die Interaktion mit dem Programm auf
+der Konsole aus wie folgt. Das Zeichen `>` verwenden wir, um Eingaben zu
+kennzeichnen. 
+
+```text
+Wie heißt Du?
+> Theodor
+Hallo Theodor!
+```
 
 ---
 
-## Funktionsaufruf: Name + Klammern + Argumente
+## Strings in Zahlen umwandeln
+
+Was ist, wenn Nutzer einen Zahlenwert eingeben sollen? Dann gibt es eine
+Besonderheit: Eingaben sind zunächst immer vom Typ `string`. Woher soll das
+Programm wissen, ob in diesem Fall ein Text oder eine Zahl gemeint ist?
+
+Hier hilft die Funktion `tonumber()`. Diese wandelt – wenn es möglich ist –
+einen String in einen Zahlenwert um. Das demonstriert das nächste
+Beispielprogramm. Es fragt nach der Eingabe zweier Zahlen und bildet
+anschließend die Summe. Ohne die Umwandlung der Eingaben per `tonumber()` würde
+die Addition `summe = zahl1 + zahl2` nicht funktionieren.
 
 ```lua
-print("guten tag")
-```
-
-Ausgabe:
-
-```
-guten tag
-```
-
-In diesem Fall ist der Name der Funktion `print()`. Das Argument ist der String `"guten tag"`.
-
-Manche Funktionen können auch mehrere Argumente verarbeiten, das gilt auch für `print()`:
-
-```lua
-print("dies", "das", "jenes")
-```
-
-Ausgabe:
-
-```
-dies das jenes
-```
-
-Andere Funktionen benötigen kein Argument, zum Beispiel `io.read()`. Die runden Klammern gehören trotzdem immer zum Funktionsaufruf:
-
-```lua
+print("Bitte gib die erste Zahl ein.")
 eingabe = io.read()
+zahl1 = tonumber(eingabe)
+
+print("Bitte gib die zweite Zahl ein.")
+eingabe = io.read()
+zahl2 = tonumber(eingabe)
+
+summe = zahl1 + zahl2
+print(zahl1 .. " + " .. zahl2 .. " = " .. summe)
 ```
 
-Die runden Klammern unterscheiden den Funktionsaufruf von der Funktion selbst:
+Das Programm in einem Anwendungsbeispiel:
 
-```lua
-type(print)    -- "function"
-type(print())  -- "nil"
+```text
+Bitte gib die erste Zahl ein.
+> 7
+Bitte gib die zweite Zahl ein.
+> 9
+7 + 9 = 16
 ```
 
-`io.read()` ist eine Funktion, die einen Wert zurückliefert.
+Wenn ihr in dem Programm etwas eingebt, was sich nicht in eine Zahl umwandeln
+lässt (z. B. „sieben“ oder „Käse“), dann bekommt ihr eine Fehlermeldung:
+
+```text
+attempt to perform arithmetic on a nil value (global 'zahl1')
+```
+
+Das bedeutet: „Der Versuch, eine Rechnung mit `zahl1` durchzuführen, hat nicht
+geklappt, weil `zahl1` gleich `nil` ist“. Das liegt daran, dass `tonumber()`,
+wenn sie keinen Zahlenwert ermitteln konnte, `nil` zurückliefert.
 
 ---
 
-## Eine Pizzeria programmieren
-
-Stell Dir vor, Du möchtest ein Textadventure programmieren, in dem es um den Betrieb einer Pizzeria geht. Jedes Mal, wenn ein Kunde eine Pizza bestellt, soll das Programm den Arbeitsablauf der Zubereitung beschreiben. Eine erste Variante könnte so aussehen:
-
-```lua
-print("Teig ausrollen")
-print("Tomatensoße hinzu")
-print("geriebenen Käse hinzu")
-print("backen")
-```
-
----
-
-## Die Pizza per Funktion zubereiten
-
-Aus diesem Code wird eine Funktion:
-
-```lua
-function pizza_backen()
-  print("Teig ausrollen")
-  print("Tomatensoße hinzu")
-  print("geriebenen Käse hinzu")
-  print("backen")
-end
-```
-
-- `function` bedeutet: hier kommt eine Funktionsdefinition.
-- `pizza_backen` ist der Name der Funktion.
-- Die leeren runden Klammern `()` zeigen: keine Argumente.
-- Bis zum `end` steht der Code, der beim Aufruf ausgeführt wird (der **Funktionskörper**).
-
-Wenn Du das Beispiel ausführst, passiert erst einmal nichts: Du hast nur definiert. Ein Rezept ist noch keine Pizza! Zum Verwenden:
-
-```lua
-pizza_backen()
-```
-
----
 
 ## Aufgabe 1
 
-Schreibe eine eigene Funktion `tee_kochen()`, welche die Zubereitungsschritte einer Tasse Tee in den drei Schritten „Wasser kochen“, „Teebeutel in Tasse hängen“ und „Wasser aufgießen“ nach dem Muster unserer Pizza-Funktion beschreibt. Führe die Funktion drei Mal aus.
+Schreib ein Programm, dass zunächst danach fragt, wie viele Bonbons gekauft
+werden sollen; als zweites soll es fragen, wie viel ein Bonbon kostet. Danach
+soll das Programm den Gesamtpreis ausgeben:
+
+```text
+Wie viele Bonbons sollen es sein?
+> 9
+Was kostet ein Bonbon?
+> 0.12
+9 Bonbons kosten 1.08 Euro
+```
 
 <details>
 <summary>▽ Lösung</summary>
 
 ```lua
-function teig_zubereiten()
-  print("Wasser, Mehl, Hefe, Öl und Salz in Schüssel geben")
-  print("Zutaten rühren")
-  print("Den Teig gehen lassen")
-end
- 
-function pizza_backen()
-  teig_zubereiten()
-  print("Teig ausrollen")
-  print("Tomatensoße hinzu")
-  print("geriebenen Käse hinzu")
-  print("backen")
-end
+print("Wie viele Bonbons sollen es sein?")
+eingabe = io.read()
+anzahl_bonbons = tonumber(eingabe)
+
+print("Was kostet ein Bonbon?")
+eingabe = io.read()
+stueckpreis = tonumber(eingabe)
+
+gesamtpreis = anzahl_bonbons * stueckpreis
+print(anzahl_bonbons .. " Bonbons kosten " .. gesamtpreis .. " Euro.")
 ```
 
 </details>
 
+
 ---
 
-## Funktionen rufen Funktionen auf
+## Bedingungen
 
-Code innerhalb einer Funktion kann wiederum andere Funktionen aufrufen (z. B. `print()`). Selbst geschriebene Funktionen können auch andere selbst geschriebene Funktionen aufrufen. Bei größeren Programmen zerlegt man Aufgaben oft in viele kleine, gut verständliche Funktionen.
+Unverzichtbarer Bestandteil eines jeden Computerprogramms sind die sogenannten
+Bedingungen. Wir sprechen auch von **bedingter Ausführung**. Das heißt, dass
+eine bestimmte Anweisungen nur ausgeführt werden soll, wenn eine bestimmte
+Bedingung erfüllt ist.
+
+Beispiele für bedingte Ausführungen sind:
+
+- **WENN** der böse Geist die Spielerin berührt, **DANN** ziehe der Spielerin 100
+Gesundheitspunkte ab
+- **WENN** das Spiel vorbei ist, **DANN** zeige den Schriftzug `GAME OVER` an
+
+---
+
+## Vergleichsoperatoren
+
+In Lua werden diese Bedingungen in sogenannten **booleschen Ausdrücken** beschrieben.
+Diese Ausdrücke liefern einen Wert vom Typ `boolean`. Da Bedingungen entweder
+wahr oder falsch sein können, kann dieser Wert nur zwei Zustände annehmen:
+`true` (wahr) oder `false` (falsch).
+
+Boolesche Ausdrücke enthalten oft Vergleichsoperatoren:
+
+- `a == b`  → a ist gleich b
+- `a ~= b`  → a ist nicht gleich b
+- `a <  b`  → a ist kleiner b
+- `a <= b`  → a ist kleiner oder gleich b
+- `a >  b`  → a ist größer b
+- `a >= b`  → a ist größer oder gleich b
+
+---
+
+## Zuweisung oder Vergleich
+
+In Lua (und vielen anderen Programmiersprachen) steht das einfache
+Gleichheitszeichen für eine **Zuweisung**:
+
+```lua
+a = 10
+```
+
+Das bedeutet: „Weise `a` den Wert `10` zu“.
+
+In der Mathematik steht das einfache Gleichheitszeichen für einen **Vergleich**:
+
+> `a = 10` bedeutet hier: „a hat den Wert 10“ (eine Aussage, die wahr oder
+> falsch sein kann).
+
+Wenn wir in Lua einen Vergleich machen wollen, verwenden wir das doppelte
+Gleichheitszeichen:
+
+```lua
+a == 10
+```
+
+---
+
+## Ein paar Fingerübungen mit Vergleichsoperatoren
+
+Probieren wir ein paar Ausdrücke mit Vergleichsoperatoren aus. 
+
+```lua
+print(7 == 8)
+print(7 == 7)
+print(10 > 20)
+print(10 > 9)
+```
+
+Selbstverständlich lassen sich auch Variablen vergleichen:
+
+```lua
+a = 1
+b = 2
+print(a > b)
+print(a < b)
+```
+
+Auch die Ergebnisse von booleschen Ausdrücken lassen sich unter Variablenn
+speichern:
+
+```lua
+bedingung = 10 == 10
+print(type(bedingung))
+```
+
+---
+
+## Bedingte Ausführung mit `if` und `else`
+
+Das folgende Programm zeigt ein einfaches Beispiel für die bedingte Ausführung.
+Es simuliert die Eingangskontrolle eines Kinos und fragt zunächst nach dem
+Alter der Nutzerin. Der Film ist ab 16 Jahren zugelassen. Das bedeutet: Wenn
+(`if`) das Alter größer oder gleich 16 ist (`alter >= altersbeschraenkung`),
+dann (`then`) darf die Nutzerin den Film sehen.
+
+```lua
+altersbeschraenkung = 16
+
+print("Wie alt bist Du?")
+eingabe = io.read()
+alter = tonumber(eingabe)
+
+if alter >= altersbeschraenkung then
+  print("Du bist alt genug für den Film: Viel Spaß!")
+end
+```
+
+Die Einrückung ist übrigens nicht notwendig, erleichtert aber die Lesbarkeit.
+Zusammengehöriger Code steht auf derselben Einrückungsebene.
+
+Der eingerückte Code zwischen `then` und `end` wird auch als **Block**
+bezeichnet.
+
+Wir können das Programm erweitern, indem wir festlegen, was passieren soll,
+wenn die Bedingung `alter >= altersbeschraenkung` nicht erfüllt ist. Das
+passiert mit einem `else`-Zweig („sonst“):
+
+```lua
+if alter >= altersbeschraenkung then
+  print("Du bist alt genug für den Film: Viel Spaß!")
+else
+  print("Du bist nicht alt genug, um den Film zu schauen.")
+end
+```
+
+Hinweis: `if`, `else` und `end` sind **Schlüsselwörter** und dürfen nicht als
+Variablen verwendet werden.
+
+![Kino01](assets/kino01.png)
 
 ---
 
 ## Aufgabe 2
 
-Schreibe eine Funktion `teig_zubereiten()`, welche die Beschreibung der Zubereitung eines Pizza-Teiges ausgibt:
+Schreib ein Programm, das eine Rechenaufgabe stellt. Wenn der Nutzer die
+richtige Lösung eingibt, soll das Programm „Richtig!“ ausgeben, sonst „Leider
+falsch“.
 
-- Wasser, Mehl, Hefe, Öl und Salz in Schüssel geben
-- Zutaten rühren
-- Teig gehen lassen
-
-Rufe diese Funktion innerhalb der Funktion `pizza_backen()` auf, bevor der Teig ausgerollt wird.
+Tipp: Du kannst als Vorlage das vorherige Programmbeispiel mit der
+Einlasskontrolle nutzen und musst lediglich einige Änderungen vornehmen.
 
 <details>
 <summary>▽ Lösung</summary>
 
 ```lua
-function teig_zubereiten()
-  print("Wasser, Mehl, Hefe, Öl und Salz in Schüssel geben")
-  print("Zutaten rühren")
-  print("Den Teig gehen lassen")
-end
- 
-function pizza_backen()
-  teig_zubereiten()
-  print("Teig ausrollen")
-  print("Tomatensoße hinzu")
-  print("geriebenen Käse hinzu")
-  print("backen")
+print("Wieviel ist Sieben mal Acht?")
+eingabe = io.read()
+loesung = tonumber(eingabe)
+
+if loesung == 56 then
+  print("Richtig!")
+else
+  print("Leider falsch.")
 end
 ```
 
@@ -162,115 +297,163 @@ end
 
 ---
 
-## Die Pizzafunktion um ein Argument erweitern
+## Verschachtelte `if`-Anweisungen
 
-Statt für jede Sorte fast denselben Code zu schreiben, fassen wir die Unterschiede zusammen – mit einem Argument `extrabelag`:
+Ihr könnt auch mehrere `if`-Anweisungen ineinander verschachteln. Stellt euch
+vor, dass zum Betreten des Kinos eine zweite Bedingung erfüllt sein muss,
+nämlich, dass der Spieler genügend Geld für eine Karte dabei hat.
+
+Hier vertraut die Einlasskontrolle nicht mehr auf die Ehrlichkeit der Spieler,
+sondern setzt `alter` und `guthaben` direkt fest. Um die korrekte Funktion des
+Programms in unterschiedlichen Situationen zu prüfen, müsst ihr verschiedene
+Werte für `alter` und `guthaben` einsetzen.
 
 ```lua
-function pizza_backen(extrabelag)
-  print("Teig ausrollen")
-  print("Tomatensoße hinzu")
-  print(extrabelag .. " hinzu")
-  print("geriebenen Käse hinzu")
-  print("backen")
+altersbeschraenkung = 16
+eintrittspreis = 8
+alter = 17
+guthaben = 3
+
+if alter >= altersbeschraenkung then
+  if guthaben >= eintrittspreis then
+    print("Du bist alt genug und kannst Dir die Karte leisten: Viel Spaß!")
+  else
+    print("Du hast leider nicht genügend Geld für eine Eintrittskarte.")
+  end
+else
+  print("Du bist nicht alt genug, um den Film zu schauen.")
 end
 ```
 
-Aufrufe:
-
-```lua
-pizza_backen("Pilze")
-pizza_backen("Spiegelei")
-pizza_backen("Vanilleeis")
-```
-
-### Aufruf ohne Argument → Fehler
-
-Wenn ihr sie ohne Argument aufruft, ist `extrabelag` gleich `nil`, und dann klappt `extrabelag .. " hinzu"` nicht:
-
-```lua
-pizza_backen()
--- attempt to concatenate local 'extrabelag' (a nil value)
-```
+![Kino02](assets/kino02.png)
 
 ---
 
 ## Aufgabe 3
 
-Wie können wir den Fehler verhindern, wenn jemand eine einfache Margherita ohne Extrabelag wünscht?
-
-Tipps: Du brauchst `if`, und `nil` wird wie `false` bewertet.
+Erweitere das letzte Codebeispiel: Der Eintrittspreis soll vom Guthaben
+abgezogen werden. Gib am Ende des Programms das Guthaben in folgender Form aus:
+„Dein Guthaben beträgt 4 Euro.“
 
 <details>
-<summary>▽ Lösung (Platzhalter)</summary>
+<summary>▽ Lösung</summary>
 
-*Noch keine Lösung vorhanden.*
+```lua
+altersbeschraenkung = 16
+eintrittspreis = 8
+alter = 17
+guthaben = 12
+
+if alter >= altersbeschraenkung then
+  if guthaben >= eintrittspreis then
+    print("Du bist alt genug für den Film und kannst Dir die Karte leisten: Viel Spaß!")
+    guthaben = guthaben - eintrittspreis
+  else
+    print("Du hast leider nicht genügend Geld für eine Eintrittskarte.")
+  end
+else
+  print("Du bist nicht alt genug, um den Film zu schauen.")
+end
+
+print("Dein Guthaben beträgt " .. guthaben .. " Euro.")
+```
+
+Zeile mit `guthaben = guthaben - eintrittspreis` berechnet den neuen Wert von
+`guthaben` und speichert ihn unter `guthaben`.  
+Die letzte `print(...)`-Zeile gibt das aktuelle Guthaben aus.
 
 </details>
+
+
+---
+
+## Logische Operatoren
+
+Mittels logischer Operatoren kannst Du mehrere Bedingungen zu einer
+einzigen Bedingung verknüpfen oder Bedingungen umkehren:
+
+- `a and b` → ist wahr, wenn `a` und `b` wahr sind
+- `a or b`  → ist wahr, wenn mindestens eine der Bedingungen `a` oder `b` wahr ist
+- `not a`   → ist wahr, wenn `a` nicht wahr ist
+
+Mit `and` kannst Du die Bedingung für den Kinobesuch aus dem Beispiel so
+zusammenfassen:
+
+```lua
+if alter >= altersbeschraenkung and guthaben >= eintrittspreis then
+  print("Du bist alt genug für den Film und kannst Dir die Karte leisten: Viel Spaß!")
+end
+```
+
+Bei umfangreicheren Ausdrücken empfiehlt es sich, Klammern zu setzen:
+
+```lua
+if (alter >= altersbeschraenkung) and (guthaben >= eintrittspreis) then
+  -- ...
+end
+```
+
+Eine typische Anwendung für `or` ist es, festzustellen, ob ein Wert innerhalb
+eines bestimmten Bereiches liegt (Hinweis: *dieses* Beispiel nutzt `or`, um die
+Idee zu zeigen; für „zwischen 0 und 10“ wäre `and` die passendere Wahl):
+
+```lua
+if (wert > 0) or (wert < 10) then
+  print("Der Wert liegt zwischen 0 und 10")
+else
+  print("Der Wert liegt nicht zwischen 0 und 10")
+end
+```
+
+`not` kehrt jede Bedingung um:
+
+```lua
+if not obst_vorraetig then
+  print("Du hast kein Obst mehr")
+else
+  print("Du hast noch genügend Obst")
+end
+```
+
+Das ist vom Ergebnis her identisch mit:
+
+```lua
+if obst_vorraetig then
+  print("Du hast noch genügend Obst")
+else
+  print("Du hast kein Obst mehr")
+end
+```
 
 ---
 
 ## Aufgabe 4
 
-Schreibe eine Funktion, die **zwei** Extrabeläge auf die Pizza bringen kann. Hinweis: mehrere Argumente werden mit Kommas getrennt.
+Schreibe einen Ausdruck, der `true` ergibt, wenn `wert` genau zwischen 10 und
+20 ist, sonst `false`.
 
 <details>
-<summary>▽ Lösung (Platzhalter)</summary>
+<summary>▽ Lösung</summary>
 
-*Noch keine Lösung vorhanden.*
+```lua
+wert > 10 and wert < 20
+```
 
 </details>
 
 ---
 
-## Funktionen mit Rückgabewert
-
-Zwei grobe Kategorien:
-
-1. Funktionen, die etwas machen (z. B. `print()`).
-2. Funktionen, die einen Wert zurückliefern (z. B. `type()`, `tonumber()`).
-
-Beispiele:
-
-```lua
-type(10)            -- "number"
-tonumber("42")      -- 42
-tonumber("sieben")  -- nil
-```
-
----
-
-## Die Funktion `plus_sieben`
-
-```lua
-function plus_sieben(x)
-  return x + 7
-end
-```
-
-Beispiele:
-
-```lua
-plus_sieben(3)   -- 10
-plus_sieben(7)   -- 14
-plus_sieben(-5)  -- 2
-```
-
----
-
 ## Aufgabe 5
 
-Schreibe nach dem Muster von `plus_sieben()` folgende Funktionen und teste sie:
-
-- `plus_drei()`
-- `minus_fuenf()`
-- `mal_zehn()`
-- `geteilt_durch_drei()`
+Modifiziere die Lösung von Aufgabe 4, sodass sie auch `true` ergibt, wenn
+`wert` exakt 10 oder 20 ist.
 
 <details>
-<summary>▽ Lösung (Platzhalter)</summary>
+<summary>▽ Lösung</summary>
 
-*Noch keine Lösung vorhanden.*
+```lua
+wert >= 10 and wert <= 20
+```
 
 </details>
 
@@ -278,133 +461,29 @@ Schreibe nach dem Muster von `plus_sieben()` folgende Funktionen und teste sie:
 
 ## Aufgabe 6
 
-Schreibe eine Funktion, die `true` zurückliefert, wenn das Argument `x` eine Zahl ist (`type(x) == "number"`), sonst `false`. Teste die Funktion.
+Schreibe einen Ausdruck, welcher dann wahr ist, wenn `wert` exakt 5 oder 7 ist.
 
 <details>
-<summary>▽ Lösung (Platzhalter)</summary>
+<summary>▽ Lösung</summary>
 
-*Noch keine Lösung vorhanden.*
+```lua
+wert == 5 or wert == 7
+```
 
 </details>
 
 ---
 
-## Aufgabe 7
+## Was wir hier ausgelassen haben
 
-Schreibe eine Funktion `ist_dazwischen(wert, von, bis)`, die `true` zurückgibt, wenn `wert` genau zwischen `von` und `bis` ist, sonst `false`.
-
-<details>
-<summary>▽ Lösung (Platzhalter)</summary>
-
-*Noch keine Lösung vorhanden.*
-
-</details>
-
----
-
-## Mehrere `return`s in einer Funktion: `begrenze`
+Aufeinander folgende `if`-Anweisungen lassen sich auch mit `elseif` bauen:
 
 ```lua
-function begrenze(wert, von, bis)
-
-  if wert < von then
-    return von
-  end
-
-  if wert > bis then
-    return bis
-  end
-
-  return wert
-
+if BEDINGUNG then
+  -- ...
+elseif BEDINGUNG2 then
+  -- ...
+elseif BEDINGUNG3 then
+  -- ...
 end
 ```
-
-Beispiele:
-
-```lua
-begrenze(5, 0, 10)    -- 5
-begrenze(-3, 0, 10)   -- 0
-begrenze(20, 0, 10)   -- 10
-```
-
----
-
-## `return` statt `break`
-
-`break` verlässt eine Schleife, `return` verlässt eine Funktion. Beispiel:
-
-```lua
-function wuerfel_bis_sechs()
-
-  while true do
-    zahl = math.random(6)
-    print(zahl)
-
-    if zahl == 6 then
-      break
-    end
-  end
-
-end
-```
-
----
-
-## Aufgabe 8 (für Fortgeschrittene)
-
-Schreibe eine Funktion `zahl_eingeben()`. Sie soll ungültige Eingaben (die sich nicht mit `tonumber()` in eine Zahl umwandeln lassen) abfangen und so lange nachfragen, bis eine gültige Zahl eingegeben wurde. Diese soll dann als Zahl zurückgeliefert werden.
-
-<details>
-<summary>▽ Lösung (Platzhalter)</summary>
-
-*Noch keine Lösung vorhanden.*
-
-</details>
-
----
-
-## Ausblick: Themen, die wir ausgelassen haben
-
-### Mehrere Rückgabewerte
-
-```lua
-function mehrere()
-  return 1, 2, 3
-end
-
-a, b, c = mehrere()
-```
-
-### Rekursion (Selbstaufruf)
-
-```lua
-function selbstaufrufer()
-  selbstaufrufer()
-end
-```
-
-### Funktionen als Werte (und „Abkürzung“ bei Funktionsdefinitionen)
-
-```lua
-drucke = print
-drucke("hallo")
-```
-
-Das hier …
-
-```lua
-function gruss()
-  print("guten tag!")
-end
-```
-
-… ist eigentlich …
-
-```lua
-gruss = function()
-  print("guten tag!")
-end
-```
-
-Funktionen können daher auch als Argumente übergeben oder als Rückgabewerte zurückgegeben werden (Funktionen zweiter Ordnung) – ein Thema für Fortgeschrittene.

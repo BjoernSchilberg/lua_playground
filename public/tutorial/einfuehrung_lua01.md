@@ -1,269 +1,386 @@
-# Einführung in Lua (kurz & praktisch)
+# Der interaktive Modus (Lua)
 
-Lua ist eine kleine, schnelle und leicht zu erlernende Programmiersprache. Sie wird oft für Spiele, Skripting, Embedded-Systeme und als „Einbettungs-Sprache“ in andere Programme genutzt.
 
----
+<!-- mtoc-start -->
 
-## 1) Erste Schritte: Ausgeben mit `print`
+* [REPL starten](#repl-starten)
+* [Erste Schritte](#erste-schritte)
+* [Rechnen](#rechnen)
+* [Automatische Ausgabe des letzten Ergebnisses](#automatische-ausgabe-des-letzten-ergebnisses)
+* [Variablen](#variablen)
+  * [Regeln für Variablen](#regeln-fuer-variablen)
+* [Zeichenketten](#zeichenketten)
+  * [Mehrere Variablen für denselben Wert](#mehrere-variablen-fuer-denselben-wert)
+* [Zeichenketten zusammenbauen](#zeichenketten-zusammenbauen)
+* [Datentypen](#datentypen)
+* [Der spezielle Datentyp `nil`](#der-spezielle-datentyp-nil)
+* [Aufgabe 1.1](#aufgabe-11)
+* [Aufgabe 1.2](#aufgabe-12)
+* [Aufgabe 1.3](#aufgabe-13)
+* [Was wir hier ausgelassen haben](#was-wir-hier-ausgelassen-haben)
+  * [Der Gültigkeitsbereich von Variablen](#der-gueltigkeitsbereich-von-variablen)
+  * [`io.write()` statt `print()`](#iowrite-statt-print)
 
-```lua
-print("Hallo Lua!")
-print(2 + 3)
-```
+<!-- mtoc-end -->
 
-**Merke:** Strings stehen in `"..."` oder `'...'`.
+Lua ist eine interpretierte Programmiersprache. Der Lua-Interpreter ist dafür
+zuständig, die Codebefehle umzusetzen – etwa, um zwei Zahlen zu addieren oder
+eine Nachricht auszugeben. Diese Befehle können in einer Textdatei stehen.
 
----
-
-## 2) Kommentare
-
-```lua
--- Das ist ein einzeiliger Kommentar
-
---[[
-Das ist ein
-mehrzeiliger Kommentar
-]]
-```
-
----
-
-## 3) Variablen und Datentypen
-
-Lua ist **dynamisch typisiert**: Du schreibst keinen Typ hin, Lua merkt sich ihn zur Laufzeit.
-
-```lua
-local name = "Mila"   -- String
-local alter = 16      -- Zahl (number)
-local cool = true     -- boolean (true/false)
-local nichts = nil    -- "kein Wert"
-
-print(name, alter, cool, nichts)
-```
-
-**`local`** bedeutet: Variable gilt nur in diesem Block / dieser Datei (empfohlen!).
+Es besteht aber auch die Möglichkeit, direkt mit dem Interpreter zu
+kommunizieren wie in einem Chat: Ihr gebt eine Codezeile ein, drückt Enter und
+erhaltet das Ergebnis. Diese Arbeitsweise nennen wir den **interaktiven
+Modus**. In der ersten Lektion werden wir ausschließlich den interaktiven Modus
+verwenden.
 
 ---
 
-## 4) Rechnen und Operatoren
+## REPL starten
 
-```lua
-local a = 10
-local b = 3
-
-print(a + b)   -- 13
-print(a - b)   -- 7
-print(a * b)   -- 30
-print(a / b)   -- 3.333...
-print(a % b)   -- 1   (Rest)
-print(a ^ b)   -- 1000 (Potenz)
-```
-
-Strings verketten mit `..`:
-
-```lua
-local vorname = "Mila"
-local text = "Hallo, " .. vorname .. "!"
-print(text)
-```
+Mit einem Klick in das Fenster startet ihr den Lua-Interpreter und landet auf
+der Konsole. Dort tippt ihr Lua-Befehle ein, bestätigt diese mit Enter und
+erhaltet postwendend das Ergebnis.
 
 ---
 
-## 5) Bedingungen: `if / elseif / else`
+## Erste Schritte
 
-```lua
-local punkte = 72
+Für alle hier wiedergegebenen Beispiele aus interaktiven Sitzungen gilt:
 
-if punkte >= 90 then
-  print("Note 1")
-elseif punkte >= 75 then
-  print("Note 2")
-elseif punkte >= 60 then
-  print("Note 3")
-else
-  print("Weiter üben")
-end
-```
-
-Vergleichsoperatoren: `==`, `~=`, `<`, `<=`, `>`, `>=`  
-Logik: `and`, `or`, `not`
+- Zeilen, die mit `>` beginnen, sind **Eingaben**.
+- Die anderen Zeilen sind **Antworten** des Lua-Interpreters.
 
 ---
 
-## 6) Schleifen
+## Rechnen
 
-### 6.1 `for`-Schleife (Zählschleife)
+Selbstverständlich beherrscht Lua die Grundrechenarten. Schaut euch die
+folgenden Beispiele an, probiert sie aus und versucht auch eigene Aufgaben.
 
-```lua
-for i = 1, 5 do
-  print("i =", i)
-end
+Ihr seht an den folgenden Beispielen: Lua kennt negative Zahlen, und es
+erkennt, ob eine Zahl durch eine andere ohne Rest teilbar ist (`28 / 7` ist
+`4`) oder dies nicht möglich ist (`10 / 3` ist `3.3333333333333`). Lua
+verwendet einen Dezimalpunkt, kein Komma.
+
+```text
+> 1 + 1
+2
+
+> 10 - 3
+7
+
+> 10 - 20
+-10
+
+> 7 * 8
+56
+
+> 28 / 7
+4
+
+> 10 / 3
+3.3333333333333
+
+> 3.141 * 2
+6.282
 ```
 
-Mit Schrittweite:
+Übrigens: Ihr könnt die Leerzeichen vor und nach den Rechenoperatoren (`+`,
+`-`, `*`, `/`) auch weglassen, also `1+1` statt `1 + 1` schreiben. Üblicher ist
+aber die Variante mit Leerzeichen, weil sie meist besser lesbar ist.
 
-```lua
-for i = 10, 0, -2 do
-  print(i)
-end
-```
+---
 
-### 6.2 `while`-Schleife
+## Automatische Ausgabe des letzten Ergebnisses
 
-```lua
-local count = 1
-while count <= 3 do
-  print("count =", count)
-  count = count + 1
-end
-```
+Im interaktiven Modus gibt der Lua-Interpreter immer das Ergebnis der letzten
+Eingabe automatisch aus. Bei der Ausführung von Code im Editor läuft das anders:
+Dann erledigt die Funktion `print()` die Ausgabe.
 
-### 6.3 `repeat ... until` (läuft mindestens einmal)
+Ihr könnt `print()` auch im interaktiven Modus nutzen:
 
-```lua
-local x = 0
-repeat
-  x = x + 1
-  print("x =", x)
-until x == 3
+```text
+> print(10)
+10
+
+> print(1 + 1)
+2
 ```
 
 ---
 
-## 7) Funktionen
+## Variablen
 
-```lua
-local function quadrat(n)
-  return n * n
-end
+Anstatt mit Zahlen kann Lua auch mit Variablenn rechnen:
 
-print(quadrat(5))  -- 25
+```text
+> a = 1
+> b = 2
+> a + b
+3
 ```
 
-Mehrere Rückgabewerte sind möglich:
+Variablen sind Platzhalter für Werte. Genauer: Variablen **verweisen** auf
+Werte. Im letzten Beispiel steht `a` für den Wert `1` und `b` für den Wert `2`.
 
-```lua
-local function minmax(a, b)
-  if a < b then
-    return a, b
-  else
-    return b, a
-  end
-end
+Wann immer im Code ein Wert stehen könnte – zum Beispiel eine Zahl in einer
+Addition – dürft ihr auch eine Variable hinschreiben, welche auf einen Wert
+verweist.
 
-local klein, gross = minmax(9, 2)
-print(klein, gross) -- 2  9
+### Regeln für Variablen
+
+- Variablen dürfen aus Buchstaben, Ziffern und Unterstrichen bestehen
+- Sie dürfen **nicht** mit einer Ziffer beginnen
+- Üblich sind Kleinbuchstaben und Unterstriche: lieber `anzahl_raumschiffe` statt `AnzahlRaumschiffe`
+
+Wenn wir einen Variablen mit einem Wert verbinden (z. B. `a = 1`), heißt das
+**Zuweisung**. Wenn wir einer Variablen zum ersten Mal einen Wert geben, wird dies 
+**Initialisierung** genannt.
+
+Alle innerhalb einer interaktiven Lua-Sitzung getroffenen Zuweisungen sind bis
+zum Ende der Sitzung gültig. 
+
+---
+
+## Zeichenketten
+
+Wenn ihr in Lua Zeichenketten (Text) eingeben wollt, müsst ihr diese mit
+einfachen oder doppelten Anführungszeichen umschließen:
+
+```text
+> "Lua find ich gut"
+Lua find ich gut
+
+> 'Heute ist ein schöner Tag'
+Heute ist ein schöner Tag
+```
+
+Wenn ihr einfache Anführungszeichen verwendet, darf die Zeichenkette selbst
+auch doppelte enthalten – und umgekehrt:
+
+```text
+> '"Lua" ist das portugiesische Wort für "Mond".'
+"Lua" ist das portugiesische Wort für "Mond".
+
+> "'Zeichenketten' werden auch 'Strings' genannt."
+'Zeichenketten' werden auch 'Strings' genannt.
+```
+
+### Mehrere Variablen für denselben Wert
+
+Es gibt viele Dinge, die mit verschiedenen Wörtern bezeichnet werden. Zum
+Beispiel nennen wir einen PKW auch Schlitten, Blechkiste, Auto oder Karre. Das
+lässt sich in Lua so abbilden:
+
+```text
+> schlitten = "PKW"
+> blechkiste = "PKW"
+> auto = "PKW"
+> karre = "PKW"
+
+> schlitten
+PKW
+> blechkiste
+PKW
+> auto
+PKW
+> karre
+PKW
+```
+
+Wichtig: Variablen sind **keine Behälter**, die Werte enthalten. Variablen
+**verweisen** auf Werte. Dieser Unterschied wird später noch wesentlich, wenn
+es um Werte geht, welche ihren Zustand ändern können.
+
+![PKW](assets/pkw.png)
+
+---
+
+## Zeichenketten zusammenbauen
+
+In Lua ist `..` ein Operator, ähnlich wie `+`, `-` oder `*`. Mit diesem könnt ihr
+Zeichenketten verknüpfen:
+
+```text
+> name1 = "Anna"
+> name2 = "Peter"
+> name1 .. " und " .. name2
+Anna und Peter
+```
+
+`name1 .. " und " .. name2` liefert eine **neue** Zeichenkette. Einen
+Codeabschnitt, welcher einen neuen Wert liefert, dieser wird in der Informatik
+**Ausdruck** genannt.
+
+Mittels `..` lassen sich auch Zeichenketten mit Zahlen verbinden. Das ist
+praktisch, wenn das Programm einen Wert in verständlicher Form ausgeben soll:
+
+```text
+> temperatur = 18
+> "Die Temperatur beträgt " .. temperatur .. " Grad Celsius."
+Die Temperatur beträgt 18 Grad Celsius.
 ```
 
 ---
 
-## 8) Tabellen (das wichtigste Datenkonstrukt in Lua)
+## Datentypen
 
-Tabellen sind **Arrays**, **Dictionaries** und **Objekte** in einem.
+Computer speichern letztlich nur Nullen und Einsen. Woher soll der Computer
+wissen, ob eine Folge von Nullen und Einsen eine Zahl, eine Zeichenkette oder
+etwas anderes ist? Das sagen ihm die sogenannten **Datentypen**.
 
-### 8.1 Als Liste (Array)
+Die Funktion `type()` verrät den Typen eines Wertes. Zeichenketten und Zahlen
+habt ihr bereits kennengelernt. Die entsprechenden Typen heißen `string` und
+`number`:
 
-```lua
-local farben = { "rot", "grün", "blau" }
-
-print(farben[1]) -- rot (Lua zählt ab 1!)
-
-for i = 1, #farben do
-  print(i, farben[i])
-end
+```text
+> type("hallo")
+string
+> type(3.14)
+number
 ```
 
-`#farben` ist die Länge (für „saubere“ Listen).
+In Lua sind auch Funktionen Werte. Diese haben den Typ `function`:
 
-### 8.2 Als Wörterbuch (Key-Value)
-
-```lua
-local person = {
-  name = "Mila",
-  alter = 16
-}
-
-print(person.name)      -- Mila
-print(person["alter"])  -- 16
-```
-
-Iterieren:
-
-```lua
-for key, value in pairs(person) do
-  print(key, value)
-end
-```
-
-Für Listen nutzt man oft `ipairs`:
-
-```lua
-for i, v in ipairs(farben) do
-  print(i, v)
-end
+```text
+> type(print)
+function
+> type(type)
+function
 ```
 
 ---
 
-## 9) Ein kleines Mini-Projekt: Zahlen raten
+## Der spezielle Datentyp `nil`
 
-```lua
-math.randomseed(os.time())
-local geheim = math.random(1, 10)
+Wenn ihr eine Variable verwendet, welcher kein Wert zugewiesen wurde (also der
+auf keinen Wert zeigt), dann hat dieser den Wert `nil`. Die Bezeichnung `nil`
+kommt von dem lateinischen „nihil“ und bedeutet „Nichts“. `nil` ist auch ein
+Datentyp!
 
-print("Ich denke an eine Zahl von 1 bis 10.")
-
-while true do
-  io.write("Dein Tipp: ")
-  local eingabe = io.read()
-  local tipp = tonumber(eingabe)
-
-  if tipp == nil then
-    print("Bitte eine Zahl eingeben!")
-  elseif tipp < geheim then
-    print("Zu klein.")
-  elseif tipp > geheim then
-    print("Zu groß.")
-  else
-    print("Richtig! 🎉")
-    break
-  end
-end
+```text
+> print(x)
+nil
+> type(x)
+nil
 ```
 
----
+Ihr könnt einem Variablen auch den Wert `nil` zuweisen und somit die vorherige
+Zuweisung „löschen“:
 
-## 10) Häufige Stolperstellen
-
-- Lua zählt Listen **ab 1**, nicht ab 0.
-- `=` ist Zuweisung, `==` ist Vergleich.
-- `nil` bedeutet „kein Wert“ (z. B. Schlüssel existiert nicht).
-- Strings verketten mit `..` (nicht mit `+`).
-
----
-
-## 11) Nützliche Standardfunktionen (kleine Auswahl)
-
-```lua
-print(type(123))          -- "number"
-print(tonumber("42"))     -- 42
-print(tostring(99))       -- "99"
-
-print(math.floor(3.7))    -- 3
-print(math.random(1, 6))  -- Würfel
-
-local s = "Hallo"
-print(#s)                  -- Länge des Strings (5)
-print(string.sub(s, 2, 4)) -- "all"
+```text
+> x = 10
+> print(x)
+10
+> x = nil
+> print(x)
+nil
 ```
 
+Ihr habt bis jetzt folgende Datentypen kennengelernt:
+
+- `string`
+- `number`
+- `function`
+- `nil`
+
+In den nächsten Lektionen werden wir noch folgende Datentypen vorstellen:
+
+- `boolean`
+- `table`
+
 ---
 
-## 12) Kleine Übungsaufgaben
+## Aufgabe 1.1
 
-1. Schreibe eine Funktion `istGerade(n)`, die `true` oder `false` zurückgibt.
-2. Lege eine Liste mit 5 Namen an und gib sie nummeriert aus.
-3. Schreibe ein Programm, das die Summe aller Zahlen von 1 bis 100 berechnet.
-4. Erstelle eine Tabelle `inventar` (Wörterbuch) mit Gegenständen und Stückzahlen und gib alle Einträge aus.
+Stell Dir vor, Du möchtest Bonbons verkaufen. Du weißt, wie viele Bonbons Du
+verkaufen willst und wie viel ein Bonbon kostet. Daraus möchtest Du den
+Gesamtpreis berechnen.
+
+Speichere dafür eine ganze Zahl (zum Beispiel `7`) unter dem Variablen
+`anzahl_bonbons` und eine weitere Zahl (wie `0.19`) unter dem Variablen
+`stueckpreis`. Berechne den Gesamtpreis und speichere ihn unter dem Variablen
+`gesamtpreis`. Gib das Ergebnis aus.
+
+<details>
+<summary>▽ Lösung</summary>
+
+```text
+> anzahl_bonbons = 7
+> stueckpreis = 0.19
+> gesamtpreis = anzahl_bonbons * stueckpreis
+> print(gesamtpreis)
+1.33
+```
+
+</details>
 
 ---
+
+## Aufgabe 1.2
+
+Gib der Variablen `anzahl_bonbons` einen neuen Wert (zum Beispiel `9`) und
+berechne den Gesamtpreis erneut und gib diesen aus.
+
+<details>
+<summary>▽ Lösung</summary>
+> anzahl_bonbons = 9
+> gesamtpreis = anzahl_bonbons * stueckpreis
+> print(gesamtpreis)
+1.71
+</details>
+
+---
+
+## Aufgabe 1.3
+
+Gib den Gesamtpreis in einer schöneren Form aus:
+
+```text
+9 Bonbons kosten 1.71 Euro.
+```
+
+Du kannst hierfür Zeichenketten und Zahlen mit `..` verbinden.
+
+<details>
+<summary>▽ Lösung</summary>
+> print(anzahl_bonbons .. " Bonbons kosten " .. gesamtpreis .. " Euro.")
+9 Bonbons kosten 1.71 €.
+</details>
+
+---
+
+## Was wir hier ausgelassen haben
+
+Diese Lektion versteht sich als Rundgang durch die Sprache Lua. Vieles können wir
+daher nicht eingehend behandeln, liefern aber am Ende einer jeden Lektion
+Nachschlag und skizzieren ein paar weitere Themen.
+
+### Der Gültigkeitsbereich von Variablen
+
+Die Variablen, so wie wir sie in allen Beispielen dieses Kurses verwenden, sind
+global gültig. Das bedeutet, dass sie an jeder Stelle des Programms sichtbar
+sind. Das ist für die kleinen Programmbeispiele in diesem Kurs kein Problem.
+
+Bei größeren Projekten ist globale Sichtbarkeit ein No-Go. Stellt euch vor,
+sämtlicher Funkverkehr von Feuerwehr, Rettungsdiensten und Polizei einer
+Großstadt würde über den selben Kanal gehen. Ein ähnliches Chaos wird in einem
+großen Programm passieren, in dem alle Variablen global sind.
+
+Das Schlüsselwort `local` vor der Initialisierung eines Variablens sorgt für
+**lokale** Gültigkeit:
+
+```lua
+local temperatur = 18
+```
+
+### `io.write()` statt `print()`
+
+Die Funktion `print()` springt nach der Ausgabe immer auf eine neue Zeile. Wenn
+ihr wollt, dass das nicht passiert, verwendet die Funktion `io.write()`.
+
+Damit lassen sich zum Beispiel schönere Dialoge und ASCII-Grafiken bauen.
+Nebenbei bemerkt lassen sich mit `io.write()` auch Textdateien schreiben (wenn
+man den Ausgabestrom von der Konsole auf eine Datei umlenkt). Ebenso könnt ihr
+`io.read()` zum Lesen einer Datei verwenden. Dieses Thema hat in dieser
+Einführung keinen Platz gefunden.
