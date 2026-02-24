@@ -126,9 +126,9 @@ function hathi.forward(n)
       coroutine.yield("__hathi:speak", "Geht nicht!")
       return false, i - 1
     end
-    -- check walkable (only water, rock and flags block)
+    -- check walkable (water, rock, flags and void block)
     local tile = hathi._level[nr + 1][nc + 1]
-    if tile == "w" or tile == "r" or tile == "F" or tile == "G" then
+    if tile == "w" or tile == "r" or tile == "F" or tile == "G" or tile == "x" then
       print("⛔ Hier geht's nicht weiter!")
       coroutine.yield("__hathi:speak", "Geht nicht!")
       return false, i - 1
@@ -187,7 +187,7 @@ function hathi.isWall()
   local nc = hathi._col + _dc[d]
   if nr < 0 or nr >= hathi._rows or nc < 0 or nc >= hathi._cols then return true end
   local tile = hathi._level[nr + 1][nc + 1]
-  return tile == "w" or tile == "r" or tile == "F" or tile == "G"
+  return tile == "w" or tile == "r" or tile == "F" or tile == "G" or tile == "x"
 end
 
 function hathi.raiseFlag()
