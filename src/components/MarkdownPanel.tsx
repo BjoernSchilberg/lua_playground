@@ -8,6 +8,7 @@ import rehypeHighlight from "rehype-highlight";
 import rehypeRaw from "rehype-raw";
 import basePath from "@/lib/basePath";
 import type { UiColors } from "@/lib/uiColors";
+import { generateLevel } from "@/lib/levelGenerator";
 
 /* ------------------------------------------------------------------ */
 /*  Recursively extract plain text from React children                 */
@@ -203,11 +204,15 @@ export default function MarkdownPanel({
   /* Extract and load level blocks from markdown */
   useEffect(() => {
     if (!markdown || !onLoadLevel) return;
-    const levelRegex = /```level\n([\s\S]*?)```/g;
+    const levelRegex = /```level(#\w+)?\n([\s\S]*?)```/g;
     let match;
     while ((match = levelRegex.exec(markdown)) !== null) {
-      const rows = match[1].trim().split("\n").map((r) => r.trim()).filter(Boolean);
+      const tag = match[1]; // e.g. "#generative" or undefined
+      let rows = match[2].trim().split("\n").map((r) => r.trim()).filter(Boolean);
       if (rows.length > 0) {
+        if (tag === "#generative") {
+          rows = generateLevel(rows);
+        }
         onLoadLevel(rows);
         break; // load only the first level block found
       }
