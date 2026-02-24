@@ -1,7 +1,12 @@
 [
     {
         "slug": "kapitel01",
-        "title": "Kapitel 1",
+        "title": "Kapitel 1 - Anweisungen",
         "file": "chapter01.md"
+    },
+    {
+        "slug": "kapitel02",
+        "title": "Kapitel 2 -Schleifen",
+        "file": "chapter02.md"
     }
 ]
