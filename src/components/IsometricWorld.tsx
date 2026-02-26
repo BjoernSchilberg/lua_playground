@@ -474,8 +474,8 @@ export default function IsometricWorld({
 
       {/* Compass rose — bottom-right corner, click to rotate */}
       <svg
-        width="130"
-        height="80"
+        width="65"
+        height="40"
         viewBox="-80 -38 160 76"
         style={{
           position: "absolute",
@@ -488,7 +488,7 @@ export default function IsometricWorld({
         {/* semi-transparent backdrop */}
         <rect
           x="-78" y="-36" width="156" height="72" rx="10" ry="10"
-          fill="rgba(0,0,0,0.45)"
+          fill="rgba(0,0,0,0.25)"
         />
 
         {/* Clickable left half → rotate CCW */}
