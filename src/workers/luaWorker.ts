@@ -59,6 +59,9 @@ let replActive = false;
 /** Whether the current execution was triggered by a REPL_EVAL */
 let replRunning = false;
 
+/** Cached source of dkjson.lua (fetched once during init) */
+let dkjsonSrc: string | null = null;
+
 const stdinQueue: string[] = [];
 
 let initPromise: Promise<void> | null = null;
@@ -272,6 +275,22 @@ function post(msg: MsgFromWorker) {
   self.postMessage(msg);
 }
 
+/**
+ * Wrap a string as a Lua long-string literal, choosing a bracket level
+ * that doesn't collide with the content (e.g. [==[...]==]).
+ */
+function toLuaLongString(s: string): string {
+  let level = 0;
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const sep = "=" .repeat(level);
+    if (!s.includes("]" + sep + "]")) {
+      return "[" + sep + "[" + s + "]" + sep + "]";
+    }
+    level++;
+  }
+}
+
 function postStatus(state: MsgFromWorker extends { type: "STATUS" } ? MsgFromWorker : never) {
   post(state);
 }
@@ -337,6 +356,12 @@ async function ensureInit(): Promise<void> {
     };
 
     post({ type: "READY" });
+
+    // Fetch dkjson source (non-blocking, best-effort)
+    try {
+      const resp = await fetch(`${LUA_BASE}/lua/dkjson.lua`);
+      if (resp.ok) dkjsonSrc = await resp.text();
+    } catch { /* offline or missing – dkjson unavailable */ }
   })();
 
   return initPromise;
@@ -356,6 +381,26 @@ function newVM() {
   }
   L = bridge!.newstate();
   co = bridge!.newthread(L);
+  installPreloadModules();
+}
+
+/**
+ * Install package.preload entries (e.g. dkjson) into the current VM
+ * using a temporary thread so the main thread's stack stays clean.
+ */
+function installPreloadModules() {
+  if (!dkjsonSrc || !bridge || !L) return;
+  const tmpCo = bridge.newthread(L);
+  const srcLit = toLuaLongString(dkjsonSrc);
+  const chunk =
+    `package.preload["dkjson"] = function()` +
+    ` local f, err = load(${srcLit}, "@dkjson.lua", "t")` +
+    `; if not f then error(err) end; return f() end`;
+  const rc = bridge.load(tmpCo, chunk);
+  if (rc === 0) {
+    bridge.resume(tmpCo, L, 0);
+  }
+  bridge.pop(L, 1); // pop temporary thread
 }
 
 function destroyVM() {
@@ -765,6 +810,9 @@ self.onmessage = async (e: MessageEvent<MsgToWorker>) => {
         }
         // Pop the preamble thread from the stack
         bridge!.pop(L, 1);
+
+        // Install package.preload modules (dkjson etc.)
+        installPreloadModules();
 
         // If a level was provided, inject hathi.loadLevel() into the REPL VM
         if (msg.level) {

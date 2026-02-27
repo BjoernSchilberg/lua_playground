@@ -17,6 +17,7 @@ export const EXAMPLES: { name: string; file: string }[] = [
   { name: "Beispiel für Eingabe", file: `${basePath}/examples/input.lua` },
   { name: "Lua in 15 Minutes", file: `${basePath}/examples/LearnLuaIn15min.lua` },
   { name: "Caesar", file: `${basePath}/examples/caesar.lua` },
+  { name: "JSON + HTTP 🌐", file: `${basePath}/examples/json_api.lua` },
 ];
 
 export const STATUS_LABELS: Record<WorkerState, string> = {
