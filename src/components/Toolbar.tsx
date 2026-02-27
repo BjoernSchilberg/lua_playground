@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import type { UiColors } from "@/lib/uiColors";
 import type { WorkerState } from "@/lib/protocol";
-import { EXAMPLES, STATUS_LABELS, STATUS_COLORS } from "@/lib/constants";
+import { EXAMPLE_GROUPS, STATUS_LABELS, STATUS_COLORS } from "@/lib/constants";
 import { getSavedScripts, saveScript, deleteScript } from "@/lib/storage";
 
 interface ToolbarProps {
@@ -47,6 +47,7 @@ export default function Toolbar({
   const [savedNames, setSavedNames] = useState<string[]>([]);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [saveName, setSaveName] = useState("");
+  const [openGroup, setOpenGroup] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   /* ---- Listen for palette-triggered save ---- */
@@ -73,6 +74,7 @@ export default function Toolbar({
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setShowFileMenu(false);
         setSaveDialogOpen(false);
+        setOpenGroup(null);
       }
     };
     document.addEventListener("mousedown", handler);
@@ -133,6 +135,7 @@ export default function Toolbar({
       console.error("Failed to load example:", err);
     }
     setShowFileMenu(false);
+    setOpenGroup(null);
   };
 
   return (
@@ -159,13 +162,16 @@ export default function Toolbar({
 
         {showFileMenu && (
           <div
-            className="absolute left-0 top-full mt-1 w-72 rounded shadow-xl z-50 text-sm"
-            style={{ backgroundColor: ui.surface2, border: `1px solid ${ui.border}` }}
+            className="absolute left-0 top-full mt-1 w-72 rounded shadow-xl z-50 text-sm max-h-[80vh] overflow-y-auto"
+            style={{ backgroundColor: ui.surface2, border: `1px solid ${ui.border}`, color: ui.fg }}
           >
             {/* New */}
             <button
               onClick={() => { setCode(""); setCurrentFileName(""); setShowFileMenu(false); }}
-              className="w-full text-left px-3 py-2 hover:bg-neutral-700 transition-colors"
+              className="w-full text-left px-3 py-2 transition-colors"
+              style={{ color: ui.fg }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = ui.surface}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
             >
               📝 Neu
             </button>
@@ -174,14 +180,18 @@ export default function Toolbar({
             {!saveDialogOpen ? (
               <button
                 onClick={() => setSaveDialogOpen(true)}
-                className="w-full text-left px-3 py-2 hover:bg-neutral-700 transition-colors"
+                className="w-full text-left px-3 py-2 transition-colors"
+                style={{ color: ui.fg }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = ui.surface}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
               >
                 💾 Speichern…
               </button>
             ) : (
               <form
                 onSubmit={(e) => { e.preventDefault(); handleSave(); }}
-                className="flex items-center gap-2 px-3 py-2 border-b border-neutral-700"
+                className="flex items-center gap-2 px-3 py-2 border-b"
+                style={{ borderColor: ui.border }}
               >
                 <input
                   autoFocus
@@ -189,7 +199,8 @@ export default function Toolbar({
                   value={saveName}
                   onChange={(e) => setSaveName(e.target.value)}
                   placeholder="Name eingeben…"
-                  className="flex-1 bg-neutral-800 rounded px-2 py-1 text-sm outline-none text-neutral-200 placeholder:text-neutral-500"
+                  className="flex-1 rounded px-2 py-1 text-sm outline-none"
+                  style={{ backgroundColor: ui.bg, color: ui.fg }}
                 />
                 <button
                   type="submit"
@@ -204,7 +215,10 @@ export default function Toolbar({
             {/* Download */}
             <button
               onClick={handleDownload}
-              className="w-full text-left px-3 py-2 hover:bg-neutral-700 transition-colors"
+              className="w-full text-left px-3 py-2 transition-colors"
+              style={{ color: ui.fg }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = ui.surface}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
             >
               ⬇ Download .lua
             </button>
@@ -212,7 +226,10 @@ export default function Toolbar({
             {/* Upload */}
             <button
               onClick={handleUploadClick}
-              className="w-full text-left px-3 py-2 hover:bg-neutral-700 transition-colors border-b border-neutral-700"
+              className="w-full text-left px-3 py-2 transition-colors border-b"
+              style={{ color: ui.fg, borderColor: ui.border }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = ui.surface}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
             >
               ⬆ Datei öffnen…
             </button>
@@ -220,14 +237,20 @@ export default function Toolbar({
             {/* Saved scripts */}
             {savedNames.length > 0 && (
               <>
-                <div className="px-3 py-1.5 text-neutral-500 text-xs font-semibold uppercase tracking-wide">
+                <div
+                  className="px-3 py-1.5 text-xs font-semibold uppercase tracking-wide"
+                  style={{ color: ui.muted }}
+                >
                   Gespeicherte Skripte
                 </div>
                 {savedNames.map((name) => (
                   <div
                     key={name}
                     onClick={() => handleLoad(name)}
-                    className="flex items-center justify-between px-3 py-1.5 hover:bg-neutral-700 cursor-pointer transition-colors"
+                    className="flex items-center justify-between px-3 py-1.5 cursor-pointer transition-colors"
+                    style={{ color: ui.fg }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = ui.surface}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
                   >
                     <span className="truncate">{name}</span>
                     <button
@@ -243,19 +266,49 @@ export default function Toolbar({
             )}
 
             {/* Examples */}
-            {EXAMPLES.length > 0 && (
+            {EXAMPLE_GROUPS.length > 0 && (
               <>
-                <div className="px-3 py-1.5 text-neutral-500 text-xs font-semibold uppercase tracking-wide border-t border-neutral-700">
+                <div
+                  className="px-3 py-1.5 text-xs font-semibold uppercase tracking-wide border-t"
+                  style={{ color: ui.muted, borderColor: ui.border }}
+                >
                   Beispiele
                 </div>
-                {EXAMPLES.map((ex) => (
-                  <button
-                    key={ex.file}
-                    onClick={() => handleLoadExample(ex.file)}
-                    className="w-full text-left px-3 py-1.5 hover:bg-neutral-700 transition-colors"
-                  >
-                    📄 {ex.name}
-                  </button>
+                {EXAMPLE_GROUPS.map((group) => (
+                  <div key={group.label}>
+                    <button
+                      className="w-full text-left px-3 py-1.5 text-xs font-semibold uppercase tracking-wide flex items-center justify-between transition-colors"
+                      style={{ color: ui.muted }}
+                      onClick={() => setOpenGroup(openGroup === group.label ? null : group.label)}
+                      onMouseEnter={(e) => {
+                        if (openGroup !== group.label) setOpenGroup(group.label);
+                      }}
+                    >
+                      <span>{group.label}</span>
+                      <span
+                        className="text-[10px] transition-transform duration-150"
+                        style={{ transform: openGroup === group.label ? "rotate(90deg)" : "rotate(0deg)" }}
+                      >
+                        ▶
+                      </span>
+                    </button>
+                    {openGroup === group.label && (
+                      <div>
+                        {group.items.map((ex) => (
+                          <button
+                            key={ex.file}
+                            onClick={() => handleLoadExample(ex.file)}
+                            className="w-full text-left px-3 py-1.5 pl-6 transition-colors"
+                            style={{ color: ui.fg }}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = ui.surface}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
+                          >
+                            📄 {ex.name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 ))}
               </>
             )}
