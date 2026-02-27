@@ -61,6 +61,8 @@ let replRunning = false;
 
 /** Cached source of dkjson.lua (fetched once during init) */
 let dkjsonSrc: string | null = null;
+/** Cached source of csv.lua (fetched once during init) */
+let csvSrc: string | null = null;
 
 const stdinQueue: string[] = [];
 
@@ -357,11 +359,12 @@ async function ensureInit(): Promise<void> {
 
     post({ type: "READY" });
 
-    // Fetch dkjson source (non-blocking, best-effort)
-    try {
-      const resp = await fetch(`${LUA_BASE}/lua/dkjson.lua`);
-      if (resp.ok) dkjsonSrc = await resp.text();
-    } catch { /* offline or missing – dkjson unavailable */ }
+    // Fetch preload module sources (non-blocking, best-effort)
+    const preloads = [
+      fetch(`${LUA_BASE}/lua/dkjson.lua`).then(r => r.ok ? r.text() : null).catch(() => null),
+      fetch(`${LUA_BASE}/lua/csv.lua`).then(r => r.ok ? r.text() : null).catch(() => null),
+    ];
+    [dkjsonSrc, csvSrc] = await Promise.all(preloads);
   })();
 
   return initPromise;
@@ -389,18 +392,25 @@ function newVM() {
  * using a temporary thread so the main thread's stack stays clean.
  */
 function installPreloadModules() {
-  if (!dkjsonSrc || !bridge || !L) return;
-  const tmpCo = bridge.newthread(L);
-  const srcLit = toLuaLongString(dkjsonSrc);
-  const chunk =
-    `package.preload["dkjson"] = function()` +
-    ` local f, err = load(${srcLit}, "@dkjson.lua", "t")` +
-    `; if not f then error(err) end; return f() end`;
-  const rc = bridge.load(tmpCo, chunk);
-  if (rc === 0) {
-    bridge.resume(tmpCo, L, 0);
+  if (!bridge || !L) return;
+  const modules: [string, string | null][] = [
+    ["dkjson", dkjsonSrc],
+    ["csv", csvSrc],
+  ];
+  for (const [name, src] of modules) {
+    if (!src) continue;
+    const tmpCo = bridge.newthread(L);
+    const srcLit = toLuaLongString(src);
+    const chunk =
+      `package.preload["${name}"] = function()` +
+      ` local f, err = load(${srcLit}, "@${name}.lua", "t")` +
+      `; if not f then error(err) end; return f() end`;
+    const rc = bridge.load(tmpCo, chunk);
+    if (rc === 0) {
+      bridge.resume(tmpCo, L, 0);
+    }
+    bridge.pop(L, 1); // pop temporary thread
   }
-  bridge.pop(L, 1); // pop temporary thread
 }
 
 function destroyVM() {
