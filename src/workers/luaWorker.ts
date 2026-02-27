@@ -531,6 +531,26 @@ function tick() {
       return;
     }
 
+    /* ---- HTTP fetch yield ---- */
+
+    if (yieldTag && yieldTag.startsWith("__http:")) {
+      bridge.pop(co, nresults);
+      // Poll until Module.__http.done has the result, then resume
+      const pollHttp = () => {
+        if (!running) return;
+        const httpId = parseInt(yieldTag!.slice(7), 10);
+        if (Module.__http && Module.__http.done.has(httpId)) {
+          // Result is ready — Lua will pick it up via __http_take on next iteration
+          scheduleTick();
+        } else {
+          // Not ready yet — poll again shortly
+          schedulerTimer = setTimeout(pollHttp, 50);
+        }
+      };
+      pollHttp();
+      return;
+    }
+
     // Unknown yield – treat as slice
     bridge.pop(co, nresults);
     scheduleTick();

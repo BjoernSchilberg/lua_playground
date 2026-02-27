@@ -46,6 +46,48 @@ EM_JS(char *, host_stdin_pop, (), {
 });
 
 /* ------------------------------------------------------------------ */
+/*  EM_JS: HTTP fetch helpers (Module.__http manages pending requests)  */
+/* ------------------------------------------------------------------ */
+
+/* Start a fetch, return integer id. Result stored in Module.__http.done */
+EM_JS(int, host_http_start, (const char *url_ptr, int url_len), {
+    var url = UTF8ToString(url_ptr, url_len);
+    if (!Module.__http) {
+        Module.__http = { nextId: 1, done: new Map() };
+    }
+    var id = Module.__http.nextId++;
+    fetch(url)
+        .then(function(r) {
+            if (!r.ok) throw new Error("HTTP " + r.status + " " + r.statusText);
+            return r.text();
+        })
+        .then(function(text) {
+            Module.__http.done.set(id, { ok: 1, text: text });
+        })
+        .catch(function(err) {
+            Module.__http.done.set(id, { ok: 0, text: String(err) });
+        });
+    return id;
+});
+
+/*
+ * Poll for a completed HTTP request.
+ * Sets *ok_out = 1 (success) or 0 (error).
+ * Returns a malloc'd C string (caller must free), or NULL if not ready yet.
+ */
+EM_JS(char *, host_http_take, (int id, int *ok_out), {
+    if (!Module.__http) return 0;
+    var entry = Module.__http.done.get(id);
+    if (!entry) return 0;
+    Module.__http.done.delete(id);
+    setValue(ok_out, entry.ok, 'i32');
+    var len = lengthBytesUTF8(entry.text) + 1;
+    var ptr = _malloc(len);
+    stringToUTF8(entry.text, ptr, len);
+    return ptr;
+});
+
+/* ------------------------------------------------------------------ */
 /*  C-functions exposed to Lua                                        */
 /* ------------------------------------------------------------------ */
 
@@ -74,6 +116,30 @@ static int l_bridge_stdin_req(lua_State *L) {
     (void)L;
     host_stdin_request();
     return 0;
+}
+
+/* __http_start(url) → int id (starts fetch, returns request id) */
+static int l_http_start(lua_State *L) {
+    size_t len;
+    const char *url = luaL_checklstring(L, 1, &len);
+    int id = host_http_start(url, (int)len);
+    lua_pushinteger(L, id);
+    return 1;
+}
+
+/* __http_take(id) → ok, body_or_err | nil (polls for completion) */
+static int l_http_take(lua_State *L) {
+    int id = (int)luaL_checkinteger(L, 1);
+    int ok = 0;
+    char *s = host_http_take(id, &ok);
+    if (!s) {
+        lua_pushnil(L);
+        return 1;  /* not ready yet → single nil */
+    }
+    lua_pushboolean(L, ok);
+    lua_pushstring(L, s);
+    free(s);
+    return 2;  /* ok (bool), body_or_err (string) */
 }
 
 /* ------------------------------------------------------------------ */
@@ -122,6 +188,20 @@ static const char *BOOTSTRAP_LUA =
     "os.remove = nil\n"
     "os.rename = nil\n"
     "os.tmpname = nil\n"
+    /* ---- http_get(url) via fetch – pure Lua yield, async-friendly ---- */
+    "local _http_start = __http_start\n"
+    "local _http_take  = __http_take\n"
+    "function http_get(url)\n"
+    "  local id = _http_start(url)\n"
+    "  while true do\n"
+    "    local ok, body_or_err = _http_take(id)\n"
+    "    if ok ~= nil then\n"
+    "      if ok then return body_or_err end\n"
+    "      error(body_or_err, 2)\n"
+    "    end\n"
+    "    coroutine.yield('__http:' .. id)\n"
+    "  end\n"
+    "end\n"
 ;
 
 /* ------------------------------------------------------------------ */
@@ -148,6 +228,12 @@ lua_State *lua_bridge_newstate(void) {
 
     lua_pushcfunction(L, l_bridge_stdin_req);
     lua_setglobal(L, "__bridge_stdin_request");
+
+    lua_pushcfunction(L, l_http_start);
+    lua_setglobal(L, "__http_start");
+
+    lua_pushcfunction(L, l_http_take);
+    lua_setglobal(L, "__http_take");
 
     /* Run bootstrap */
     if (luaL_dostring(L, BOOTSTRAP_LUA) != LUA_OK) {
