@@ -457,7 +457,7 @@ function tick() {
       if (nresults > 0) {
         const parts: string[] = [];
         for (let i = -nresults; i <= -1; i++) {
-          parts.push(bridge.tostring(co, i) ?? "nil");
+          parts.push(bridge.tostring(co, i) || "nil");
         }
         post({ type: "REPL_RESULT", value: parts.join("\t") });
       } else {
