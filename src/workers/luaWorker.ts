@@ -27,6 +27,7 @@ interface LuaBridge {
   resume: (co: Ptr, from: Ptr, nargs: number) => number;
   get_nresults: () => number;
   tostring: (co: Ptr, idx: number) => string | null;
+  repr: (co: Ptr, idx: number) => string;
   clearstack: (co: Ptr) => void;
   pop: (co: Ptr, n: number) => void;
   close: (L: Ptr) => void;
@@ -344,6 +345,10 @@ async function ensureInit(): Promise<void> {
         "number",
         "number",
       ]),
+      repr: Module.cwrap("lua_bridge_repr", "string", [
+        "number",
+        "number",
+      ]),
       clearstack: Module.cwrap("lua_bridge_clearstack", null, ["number"]),
       pop: Module.cwrap("lua_bridge_pop", null, ["number", "number"]),
       close: Module.cwrap("lua_bridge_close", null, ["number"]),
@@ -457,7 +462,7 @@ function tick() {
       if (nresults > 0) {
         const parts: string[] = [];
         for (let i = -nresults; i <= -1; i++) {
-          parts.push(bridge.tostring(co, i) || "nil");
+          parts.push(bridge.repr(co, i) || "nil");
         }
         post({ type: "REPL_RESULT", value: parts.join("\t") });
       } else {

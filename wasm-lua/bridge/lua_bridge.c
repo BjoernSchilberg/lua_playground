@@ -298,6 +298,21 @@ const char *lua_bridge_tostring(lua_State *co, int idx) {
 }
 
 /*
+ * lua_bridge_repr(co, idx) → const char*
+ * Like tostring() in Lua: handles nil, boolean, number, string, table, etc.
+ * Uses luaL_tolstring which invokes __tostring metamethods.
+ * The pushed string is popped before returning; the pointer remains valid
+ * until the next Lua allocation (safe for Emscripten's immediate UTF8ToString).
+ */
+EMSCRIPTEN_KEEPALIVE
+const char *lua_bridge_repr(lua_State *co, int idx) {
+    luaL_tolstring(co, idx, NULL);   /* pushes a string */
+    const char *s = lua_tostring(co, -1);
+    lua_pop(co, 1);                  /* pop the string */
+    return s ? s : "";
+}
+
+/*
  * lua_bridge_clearstack(co) – set stack top to 0
  */
 EMSCRIPTEN_KEEPALIVE
