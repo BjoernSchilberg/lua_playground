@@ -42,6 +42,7 @@ export const EXAMPLE_GROUPS: ExampleGroup[] = [
       { name: "Caesar-Chiffre", file: `${basePath}/examples/algorithmen/caesar.lua` },
       { name: "Conway's Game of Life", file: `${basePath}/examples/algorithmen/conway.lua` },
       { name: "Ellipse", file: `${basePath}/examples/algorithmen/ellipse.lua` },
+      { name: "EAN-Barcode (PPM) 📊", file: `${basePath}/examples/algorithmen/save_barcode.lua` },
     ],
   },
   {

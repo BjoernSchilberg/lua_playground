@@ -115,6 +115,29 @@ export function useLuaWorker(
       case "LINE_PAUSED":
         setPausedLine(msg.line);
         break;
+      case "FILE_SAVE": {
+        const ext = msg.name.split(".").pop()?.toLowerCase() ?? "";
+        const mimeMap: Record<string, string> = {
+          ppm: "image/x-portable-pixmap",
+          pgm: "image/x-portable-graymap",
+          pbm: "image/x-portable-bitmap",
+          svg: "image/svg+xml",
+          txt: "text/plain",
+          csv: "text/csv",
+          json: "application/json",
+          html: "text/html",
+          lua: "text/x-lua",
+        };
+        const mime = mimeMap[ext] ?? "application/octet-stream";
+        const blob = new Blob([msg.content], { type: mime });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = msg.name;
+        a.click();
+        URL.revokeObjectURL(url);
+        break;
+      }
       case "REPL_RESULT":
         if (msg.value !== null) {
           setConsoleLines((prev) => [...prev, { text: msg.value + "\n" }]);

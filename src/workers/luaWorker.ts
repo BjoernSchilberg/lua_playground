@@ -593,6 +593,15 @@ function tick() {
 
     /* ---- HTTP fetch yield ---- */
 
+    if (yieldTag === "__file_save") {
+      const fileName = nresults >= 2 ? (bridge.tostring(co, -nresults + 1) ?? "download") : "download";
+      const content = nresults >= 3 ? (bridge.tostring(co, -nresults + 2) ?? "") : "";
+      bridge.pop(co, nresults);
+      post({ type: "FILE_SAVE", name: fileName, content });
+      scheduleTick();
+      return;
+    }
+
     if (yieldTag && yieldTag.startsWith("__http:")) {
       bridge.pop(co, nresults);
       // Poll until Module.__http.done has the result, then resume

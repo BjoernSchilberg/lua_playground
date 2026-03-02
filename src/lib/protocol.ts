@@ -40,4 +40,5 @@ export type MsgFromWorker =
   | { type: "WORLD_PATCH"; patches: WorldPatch[] }
   | { type: "LINE_PAUSED"; line: number }
   | { type: "REPL_RESULT"; value: string | null }
-  | { type: "REPL_INCOMPLETE" };
+  | { type: "REPL_INCOMPLETE" }
+  | { type: "FILE_SAVE"; name: string; content: string };
