@@ -215,7 +215,14 @@ export function useLuaWorker(
     const source = formatEditorCode();
     setPausedLine(null);
     setConsoleLines([]);
-    workerRef.current?.run(source, levelRowsRef.current ?? undefined);
+    if (levelRowsRef.current) {
+      loadLevel(levelRowsRef.current);
+      requestAnimationFrame(() => {
+        workerRef.current?.run(source, levelRowsRef.current ?? undefined);
+      });
+    } else {
+      workerRef.current?.run(source);
+    }
   };
 
   const handleStep = () => {
@@ -225,7 +232,14 @@ export function useLuaWorker(
       const source = formatEditorCode();
       setPausedLine(null);
       setConsoleLines([]);
-      workerRef.current?.step(source, levelRowsRef.current ?? undefined);
+      if (levelRowsRef.current) {
+        loadLevel(levelRowsRef.current);
+        requestAnimationFrame(() => {
+          workerRef.current?.step(source, levelRowsRef.current ?? undefined);
+        });
+      } else {
+        workerRef.current?.step(source);
+      }
     }
   };
 

@@ -193,12 +193,24 @@ export default function IsometricWorld({
 
   useEffect(() => {
     const prev = prevPosRef.current;
+    prevPosRef.current = { row: hathiRow, col: hathiCol };
+
+    // No change — just sync (e.g. direction-only update)
     if (prev.row === hathiRow && prev.col === hathiCol) {
       setAnimRow(hathiRow);
       setAnimCol(hathiCol);
       return;
     }
-    prevPosRef.current = { row: hathiRow, col: hathiCol };
+
+    // Large jump (level reset) — snap instantly, don't animate
+    const dr = Math.abs(hathiRow - prev.row);
+    const dc = Math.abs(hathiCol - prev.col);
+    if (dr > 1 || dc > 1 || dr + dc > 1) {
+      cancelAnimationFrame(rafRef.current);
+      setAnimRow(hathiRow);
+      setAnimCol(hathiCol);
+      return;
+    }
 
     const startRow = animRow;
     const startCol = animCol;
