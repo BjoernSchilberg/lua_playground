@@ -215,6 +215,8 @@ export function useLuaWorker(
     const source = formatEditorCode();
     setPausedLine(null);
     setConsoleLines([]);
+    setHathiSpeech(null);
+    setHathiSpeechAudio(false);
     if (levelRowsRef.current) {
       loadLevel(levelRowsRef.current);
       requestAnimationFrame(() => {
@@ -232,6 +234,8 @@ export function useLuaWorker(
       const source = formatEditorCode();
       setPausedLine(null);
       setConsoleLines([]);
+      setHathiSpeech(null);
+      setHathiSpeechAudio(false);
       if (levelRowsRef.current) {
         loadLevel(levelRowsRef.current);
         requestAnimationFrame(() => {
