@@ -167,6 +167,8 @@ export default function IsometricWorld({
   const [animRow, setAnimRow] = useState(hathiRow);
   const [animCol, setAnimCol] = useState(hathiCol);
   const prevPosRef = useRef({ row: hathiRow, col: hathiCol });
+  /** Source position of current animation (for stable z-ordering) */
+  const animSourceRef = useRef({ row: hathiRow, col: hathiCol });
   const rafRef = useRef(0);
 
   /* ---------------------------------------------------------------- */
@@ -202,6 +204,7 @@ export default function IsometricWorld({
     if (prev.row === hathiRow && prev.col === hathiCol) {
       setAnimRow(hathiRow);
       setAnimCol(hathiCol);
+      animSourceRef.current = { row: hathiRow, col: hathiCol };
       return;
     }
 
@@ -212,8 +215,12 @@ export default function IsometricWorld({
       cancelAnimationFrame(rafRef.current);
       setAnimRow(hathiRow);
       setAnimCol(hathiCol);
+      animSourceRef.current = { row: hathiRow, col: hathiCol };
       return;
     }
+
+    // Remember source position for stable z-ordering during animation
+    animSourceRef.current = { row: prev.row, col: prev.col };
 
     const startRow = animRow;
     const startCol = animCol;
@@ -324,14 +331,19 @@ export default function IsometricWorld({
     // Hathi — compute position and SVG name (separate from tile items for animation)
     const displayDir = (hathiDir + viewStep) % 4;
     const hp = project(animRow, animCol, centerRow, centerCol, viewStep);
-    // Use TARGET position for depth so z-ordering is stable during animation.
-    // Using the animated (interpolated) depth causes tiles to "pop" in front of
-    // or behind Hathi mid-move, visible especially at slow speeds.
-    const hpTarget = project(hathiRow, hathiCol, centerRow, centerCol, viewStep);
+    // Use max(source, target) depth + offset for z-sorting.
+    // This ensures Hathi is always drawn ON TOP of both the tile it's leaving
+    // and the tile it's walking to, regardless of movement direction.
+    // With animated depth alone, a crossover pop was visible mid-animation;
+    // with target depth alone, the opposite direction had a pop at the start.
+    const src = animSourceRef.current;
+    const hpSrc = project(src.row, src.col, centerRow, centerCol, viewStep);
+    const hpTgt = project(hathiRow, hathiCol, centerRow, centerCol, viewStep);
+    const sortDepth = Math.max(hpSrc.depth, hpTgt.depth) + 0.15;
     const hathiItem = {
       x: hp.x,
       y: hp.y,
-      depth: hpTarget.depth + 0.5,
+      depth: sortDepth,
       svgName: `hathi_${HATHI_FILE_INDEX[displayDir]}`,
     };
 
