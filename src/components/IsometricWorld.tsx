@@ -133,6 +133,8 @@ export interface IsometricWorldProps {
   speechAudio?: boolean;
   /** Called when the speech bubble auto-dismisses */
   onSpeechDone?: () => void;
+  /** Speed factor for animation (1 = normal) */
+  speed?: number;
 }
 
 /* ------------------------------------------------------------------ */
@@ -148,6 +150,7 @@ export default function IsometricWorld({
   speech,
   speechAudio,
   onSpeechDone,
+  speed = 1,
 }: IsometricWorldProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -214,7 +217,7 @@ export default function IsometricWorld({
 
     const startRow = animRow;
     const startCol = animCol;
-    const duration = 150;
+    const duration = Math.max(10, Math.round(150 / speed));
     const t0 = performance.now();
 
     function tick(now: number) {

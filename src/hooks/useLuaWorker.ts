@@ -577,6 +577,13 @@ export function useLuaWorker(
     setShowWorld(true);
   }, []);
 
+  /* ---- Speed control ---- */
+  const [speed, setSpeedState] = useState(1);
+  const setSpeed = useCallback((factor: number) => {
+    setSpeedState(factor);
+    workerRef.current?.setSpeed(factor);
+  }, []);
+
   return {
     // State
     consoleLines,
@@ -595,6 +602,8 @@ export function useLuaWorker(
     hathiSpeechAudio,
     pausedLine,
     setPausedLine,
+    speed,
+    setSpeed,
     // Refs
     workerRef,
     consoleEndRef,

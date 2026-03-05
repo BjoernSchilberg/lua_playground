@@ -301,6 +301,7 @@ export default function FolderPage() {
                 speech={ctx.hathiSpeech}
                 speechAudio={ctx.hathiSpeechAudio}
                 onSpeechDone={() => ctx.setHathiSpeech(null)}
+                speed={ctx.speed}
               />
             </div>
             <div

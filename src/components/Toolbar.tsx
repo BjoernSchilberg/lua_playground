@@ -23,6 +23,8 @@ interface ToolbarProps {
   onReset: () => void;
   onPaletteOpen: () => void;
   fileInputRef: React.RefObject<HTMLInputElement | null>;
+  speed: number;
+  onSpeedChange: (factor: number) => void;
 }
 
 export default function Toolbar({
@@ -42,6 +44,8 @@ export default function Toolbar({
   onReset,
   onPaletteOpen,
   fileInputRef,
+  speed,
+  onSpeedChange,
 }: ToolbarProps) {
   const [showFileMenu, setShowFileMenu] = useState(false);
   const [savedNames, setSavedNames] = useState<string[]>([]);
@@ -379,6 +383,22 @@ export default function Toolbar({
       >
         ↻ Reset
       </button>
+
+      {/* Speed slider */}
+      <div className="flex items-center gap-1.5 ml-2" title={`Geschwindigkeit: ${speed}×`}>
+        <span className="text-xs" style={{ color: ui.muted }}>🐢</span>
+        <input
+          type="range"
+          min={-2}
+          max={2}
+          step={1}
+          value={Math.round(Math.log2(speed))}
+          onChange={(e) => onSpeedChange(Math.pow(2, Number(e.target.value)))}
+          className="w-16 h-1 accent-blue-500 cursor-pointer"
+        />
+        <span className="text-xs" style={{ color: ui.muted }}>🐇</span>
+        <span className="text-xs tabular-nums w-6 text-center" style={{ color: ui.muted }}>{speed}×</span>
+      </div>
 
       <span
         className={`ml-auto px-2 py-0.5 rounded text-xs font-medium ${status !== "idle" ? STATUS_COLORS[status] : ""}`}

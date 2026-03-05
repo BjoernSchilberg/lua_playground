@@ -436,6 +436,14 @@ function destroyVM() {
 /*  Scheduler                                                         */
 /* ------------------------------------------------------------------ */
 
+/** Speed factor: 1 = normal, >1 = faster, <1 = slower */
+let speedFactor = 1;
+
+/** Apply speed factor to a delay (higher speed = shorter delay) */
+function scaleDelay(ms: number): number {
+  return Math.max(0, Math.round(ms / speedFactor));
+}
+
 function stopScheduler() {
   running = false;
   waitingInput = false;
@@ -523,7 +531,7 @@ function tick() {
       // Sleep request – resume after the requested delay
       const ms = parseInt(yieldTag.slice(8), 10) || 0;
       bridge.pop(co, nresults);
-      schedulerTimer = setTimeout(tick, ms);
+      schedulerTimer = setTimeout(tick, scaleDelay(ms));
       return;
     }
 
@@ -558,7 +566,7 @@ function tick() {
       const [r, c, d] = payload.split("|").map(Number);
       post({ type: "WORLD_PATCH", patches: [{ kind: "hathi", row: r, col: c, dir: d }] });
       // Small delay so animation is visible
-      schedulerTimer = setTimeout(tick, 150);
+      schedulerTimer = setTimeout(tick, scaleDelay(150));
       return;
     }
 
@@ -567,7 +575,7 @@ function tick() {
       bridge.pop(co, nresults);
       const [r, c, d] = payload.split("|").map(Number);
       post({ type: "WORLD_PATCH", patches: [{ kind: "hathi", row: r, col: c, dir: d }] });
-      schedulerTimer = setTimeout(tick, 100);
+      schedulerTimer = setTimeout(tick, scaleDelay(100));
       return;
     }
 
@@ -578,7 +586,7 @@ function tick() {
       post({ type: "WORLD_PATCH", patches: [{ kind: "speak", text, audio: audioFlag }] });
       // If audio requested, estimate ~80ms per char; otherwise fixed 1.2s
       const delay = audioFlag ? Math.max(1500, text.length * 80) : 1200;
-      schedulerTimer = setTimeout(tick, delay);
+      schedulerTimer = setTimeout(tick, scaleDelay(delay));
       return;
     }
 
@@ -1051,6 +1059,11 @@ self.onmessage = async (e: MessageEvent<MsgToWorker>) => {
       }
       bridge.pop(L, 1); // pop evalCo thread
       post({ type: "STATUS", state: "paused" });
+      break;
+    }
+
+    case "SET_SPEED": {
+      speedFactor = msg.factor;
       break;
     }
   }

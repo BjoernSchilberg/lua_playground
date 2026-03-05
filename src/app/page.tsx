@@ -26,6 +26,7 @@ export default function HomePage() {
             speech={ctx.hathiSpeech}
             speechAudio={ctx.hathiSpeechAudio}
             onSpeechDone={() => ctx.setHathiSpeech(null)}
+            speed={ctx.speed}
           />
         ) : null
       }

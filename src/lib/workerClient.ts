@@ -69,6 +69,11 @@ export class LuaWorkerClient {
     this.post({ type: "DEBUG_EVAL", code });
   }
 
+  /** Set execution speed factor (1 = normal, 2 = double speed, 0.5 = half speed) */
+  setSpeed(factor: number) {
+    this.post({ type: "SET_SPEED", factor });
+  }
+
   terminate() {
     this.worker.terminate();
   }

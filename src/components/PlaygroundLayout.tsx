@@ -39,6 +39,8 @@ export interface PlaygroundContext {
   hathiSpeechAudio: boolean;
   /** Load a level from parsed rows (e.g. ["HggF"]) into the world panel */
   loadLevel: (rows: string[]) => void;
+  /** Execution speed factor (1 = normal) */
+  speed: number;
 }
 
 /* ------------------------------------------------------------------ */
@@ -348,6 +350,7 @@ export default function PlaygroundLayout({
     setHathiSpeech: worker.setHathiSpeech,
     hathiSpeechAudio: worker.hathiSpeechAudio,
     loadLevel: worker.loadLevel,
+    speed: worker.speed,
   };
 
   const rightContent = rightPanel(ctx);
@@ -375,6 +378,8 @@ export default function PlaygroundLayout({
           onReset={worker.handleReset}
           onPaletteOpen={theme.openPalette}
           fileInputRef={fileInputRef}
+          speed={worker.speed}
+          onSpeedChange={worker.setSpeed}
         />
 
         {/* Editor + Console area (for VDrag height measurement) */}
