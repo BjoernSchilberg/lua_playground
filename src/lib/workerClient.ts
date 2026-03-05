@@ -64,6 +64,11 @@ export class LuaWorkerClient {
     this.post({ type: "REPL_EVAL", code, level });
   }
 
+  /** Evaluate code in the scope of the currently paused coroutine */
+  debugEval(code: string) {
+    this.post({ type: "DEBUG_EVAL", code });
+  }
+
   terminate() {
     this.worker.terminate();
   }

@@ -63,7 +63,7 @@ emcc -O2 \
   -sINVOKE_RUN=0 \
   -sNO_EXIT_RUNTIME=1 \
   -sSTACK_SIZE=1048576 \
-  -sEXPORTED_FUNCTIONS='["_malloc","_free","_lua_bridge_newstate","_lua_bridge_newthread","_lua_bridge_load","_lua_bridge_resume","_lua_bridge_get_nresults","_lua_bridge_tostring","_lua_bridge_repr","_lua_bridge_clearstack","_lua_bridge_pop","_lua_bridge_close","_lua_bridge_setup_hook","_lua_bridge_set_step_mode","_lua_bridge_get_current_line","_lua_bridge_update_hook"]' \
+  -sEXPORTED_FUNCTIONS='["_malloc","_free","_lua_bridge_newstate","_lua_bridge_newthread","_lua_bridge_load","_lua_bridge_resume","_lua_bridge_get_nresults","_lua_bridge_tostring","_lua_bridge_repr","_lua_bridge_clearstack","_lua_bridge_pop","_lua_bridge_close","_lua_bridge_setup_hook","_lua_bridge_set_step_mode","_lua_bridge_get_current_line","_lua_bridge_update_hook","_lua_bridge_snapshot_locals"]' \
   -sEXPORTED_RUNTIME_METHODS='["UTF8ToString","stringToNewUTF8","lengthBytesUTF8","stringToUTF8","ccall","cwrap","setValue"]' \
   --no-entry \
   -o "$OUT_DIR/lua.mjs"

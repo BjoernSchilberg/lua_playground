@@ -142,12 +142,15 @@ export function useLuaWorker(
         if (msg.value !== null) {
           setConsoleLines((prev) => [...prev, { text: msg.value + "\n" }]);
         }
-        // Save completed expression to history
+        // Save completed expression to history (only for normal REPL, not debug eval)
         if (replBufferRef.current.trim()) {
           replHistoryRef.current.push(replBufferRef.current);
         }
         replBufferRef.current = "";
-        setStatusAndRef("idle");
+        // Don't set idle when debug eval — STATUS: paused follows
+        if (statusRef.current !== "paused") {
+          setStatusAndRef("idle");
+        }
         requestAnimationFrame(() => inputRef.current?.focus());
         break;
       case "REPL_INCOMPLETE":
@@ -289,6 +292,18 @@ export function useLuaWorker(
       workerRef.current?.submitStdin(inputValue);
       setConsoleLines((prev) => [...prev, { text: `? ${inputValue}\n` }]);
       setInputValue("");
+      return;
+    }
+
+    /* Debug eval: evaluate in the paused coroutine's scope */
+    if (statusRef.current === "paused") {
+      const line = inputValue.trim();
+      if (!line) return;
+      setConsoleLines((prev) => [...prev, { text: `dbg> ${line}\n` }]);
+      replHistoryRef.current.push(line);
+      replHistoryIdxRef.current = -1;
+      setInputValue("");
+      workerRef.current?.debugEval(line);
       return;
     }
 

@@ -34,7 +34,7 @@ export default function ConsolePanel({
 }: ConsolePanelProps) {
   const isMultiLine = replBuffer.length > 0;
   const inputEnabled = replMode
-    ? status === "idle" || status === "error" || status === "waiting_input"
+    ? status === "idle" || status === "error" || status === "waiting_input" || status === "paused"
     : status === "waiting_input";
 
   return (
@@ -47,7 +47,7 @@ export default function ConsolePanel({
           borderBottom: `1px solid ${ui.border}`,
         }}
       >
-        <span>{replMode ? "REPL" : "Console"}</span>
+        <span>{replMode ? (status === "paused" ? "Debug REPL" : "REPL") : "Console"}</span>
         {onToggleRepl && (
           <button
             onClick={onToggleRepl}
@@ -89,9 +89,11 @@ export default function ConsolePanel({
           {replMode
             ? status === "waiting_input"
               ? "?"
-              : isMultiLine
-                ? ">>"
-                : ">"
+              : status === "paused"
+                ? "dbg>"
+                : isMultiLine
+                  ? ">>"
+                  : ">"
             : ">"}
         </span>
         <input
@@ -105,9 +107,11 @@ export default function ConsolePanel({
             replMode
               ? status === "waiting_input"
                 ? "Waiting for input (io.read)…"
-                : isMultiLine
-                  ? "Continue input…"
-                  : "Type Lua and press Enter…"
+                : status === "paused"
+                  ? "Ausdruck auswerten (Debug)…"
+                  : isMultiLine
+                    ? "Continue input…"
+                    : "Type Lua and press Enter…"
               : status === "waiting_input"
                 ? "Type input and press Enter…"
                 : "Input disabled"

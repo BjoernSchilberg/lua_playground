@@ -18,7 +18,8 @@ export type MsgToWorker =
   | { type: "STOP" }
   | { type: "RESET" }
   | { type: "STDIN_SUBMIT"; value: string }
-  | { type: "REPL_EVAL"; code: string; level?: string[] };
+  | { type: "REPL_EVAL"; code: string; level?: string[] }
+  | { type: "DEBUG_EVAL"; code: string };
 
 /* ---- World / Hathi types ---- */
 

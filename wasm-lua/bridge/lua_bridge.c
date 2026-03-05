@@ -432,3 +432,48 @@ void lua_bridge_update_hook(lua_State *co, int count) {
     if (step_mode) mask |= LUA_MASKLINE;
     lua_sethook(co, debug_hook, mask, count);
 }
+
+/*
+ * lua_bridge_snapshot_locals(L, co)
+ *
+ * Collects all local variables from the paused coroutine `co` and
+ * stores them in _G.__debug_locals (a table on L's global env).
+ *
+ * We iterate stack levels bottom-to-top so that inner-scope locals
+ * (lower level numbers) overwrite outer ones, matching the Lua
+ * scoping rules for variable shadowing.
+ *
+ * Values are moved from co's stack to L via lua_xmove, keeping co's
+ * stack clean.  Internal variables like "(for state)" are skipped.
+ */
+EMSCRIPTEN_KEEPALIVE
+void lua_bridge_snapshot_locals(lua_State *L, lua_State *co) {
+    lua_Debug ar;
+
+    /* Count how many levels the paused coroutine has */
+    int max_level = 0;
+    while (lua_getstack(co, max_level, &ar)) max_level++;
+
+    /* Create the table _G.__debug_locals */
+    lua_newtable(L);
+
+    /* Iterate levels from outermost (highest) to innermost (0) so that
+       inner variables shadow outer ones via last-write-wins */
+    for (int level = max_level - 1; level >= 0; level--) {
+        if (!lua_getstack(co, level, &ar)) continue;
+        const char *name;
+        for (int i = 1; (name = lua_getlocal(co, &ar, i)) != NULL; i++) {
+            if (name[0] == '(') {
+                /* Skip internal values like "(for state)", "(for control)" */
+                lua_pop(co, 1);
+                continue;
+            }
+            /* Move value from co → L (pops from co, pushes onto L) */
+            lua_xmove(co, L, 1);
+            /* table[name] = value */
+            lua_setfield(L, -2, name);
+        }
+    }
+
+    lua_setglobal(L, "__debug_locals");
+}

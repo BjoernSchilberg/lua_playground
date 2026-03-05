@@ -35,6 +35,7 @@ interface LuaBridge {
   set_step_mode: (mode: number) => void;
   get_current_line: () => number;
   update_hook: (co: Ptr, count: number) => void;
+  snapshot_locals: (L: Ptr, co: Ptr) => void;
 }
 
 /* ------------------------------------------------------------------ */
@@ -360,6 +361,7 @@ async function ensureInit(): Promise<void> {
       set_step_mode: Module.cwrap("lua_bridge_set_step_mode", null, ["number"]),
       get_current_line: Module.cwrap("lua_bridge_get_current_line", "number", []),
       update_hook: Module.cwrap("lua_bridge_update_hook", null, ["number", "number"]),
+      snapshot_locals: Module.cwrap("lua_bridge_snapshot_locals", null, ["number", "number"]),
     };
 
     post({ type: "READY" });
@@ -493,6 +495,7 @@ function tick() {
           return;
         }
         // Pause execution and report line to UI
+        bridge.snapshot_locals(L, co);
         post({ type: "LINE_PAUSED", line: userLine });
         post({ type: "STATUS", state: "paused" });
         return; // stop scheduling – wait for STEP_NEXT or CONTINUE
@@ -904,6 +907,150 @@ self.onmessage = async (e: MessageEvent<MsgToWorker>) => {
       waitingInput = false;
       post({ type: "STATUS", state: "running" });
       scheduleTick();
+      break;
+    }
+
+    case "DEBUG_EVAL": {
+      // Evaluate code in the scope of the currently paused coroutine.
+      // __debug_locals was populated when LINE_PAUSED was emitted.
+      if (!bridge || !L || !co) {
+        post({ type: "ERROR", message: "No paused coroutine" });
+        break;
+      }
+
+      const debugCode = msg.code;
+
+      // Build eval chunk that uses __debug_locals as environment fallback
+      const evalChunk =
+        `local _env = setmetatable({}, {` +
+        `  __index = function(_, k) ` +
+        `    local dl = rawget(_G, "__debug_locals") ` +
+        `    if dl and dl[k] ~= nil then return dl[k] end ` +
+        `    return _G[k] ` +
+        `  end,` +
+        `  __newindex = function(_, k, v) ` +
+        `    local dl = rawget(_G, "__debug_locals") ` +
+        `    if dl and dl[k] ~= nil then dl[k] = v; return end ` +
+        `    rawset(_G, k, v) ` +
+        `  end` +
+        `})` +
+        `\nlocal _fn, _err = load("return " .. ${JSON.stringify(debugCode)}, "=debug", "t", _env)` +
+        `\nif not _fn then _fn, _err = load(${JSON.stringify(debugCode)}, "=debug", "t", _env) end` +
+        `\nif not _fn then error(_err, 0) end` +
+        `\nreturn _fn()`;
+
+      const evalCo = bridge.newthread(L);
+      const loadSt = bridge.load(evalCo, evalChunk);
+      if (loadSt !== 0) {
+        const err = bridge.tostring(evalCo, -1) ?? "syntax error";
+        bridge.pop(L, 1); // pop thread
+        post({ type: "ERROR", message: err });
+        post({ type: "STATUS", state: "paused" });
+        break;
+      }
+
+      // Run without hooks — process yields from hathi/print/sleep inline
+      let evalStatus = bridge.resume(evalCo, L, 0);
+      let evalAborted = false;
+
+      while (evalStatus === 1) {
+        // LUA_YIELD — read tag and handle it synchronously
+        const nr = bridge.get_nresults();
+        if (nr === 0) {
+          // Hook yield (shouldn't happen — no hooks on evalCo)
+          evalStatus = bridge.resume(evalCo, L, 0);
+          continue;
+        }
+        const tag = bridge.tostring(evalCo, -nr);
+
+        if (tag === "__stdout") {
+          const text = nr >= 2 ? (bridge.tostring(evalCo, -nr + 1) ?? "") : "";
+          bridge.pop(evalCo, nr);
+          post({ type: "STDOUT", text });
+
+        } else if (tag === "__hathi:speak") {
+          const text = nr >= 2 ? (bridge.tostring(evalCo, -nr + 1) ?? "") : "";
+          const audioFlag = nr >= 3 ? (bridge.tostring(evalCo, -nr + 2) === "1") : false;
+          bridge.pop(evalCo, nr);
+          post({ type: "WORLD_PATCH", patches: [{ kind: "speak", text, audio: audioFlag }] });
+
+        } else if (tag === "__hathi:move") {
+          const payload = nr >= 2 ? (bridge.tostring(evalCo, -nr + 1) ?? "") : "";
+          bridge.pop(evalCo, nr);
+          const [r, c, d] = payload.split("|").map(Number);
+          post({ type: "WORLD_PATCH", patches: [{ kind: "hathi", row: r, col: c, dir: d }] });
+
+        } else if (tag === "__hathi:turn") {
+          const payload = nr >= 2 ? (bridge.tostring(evalCo, -nr + 1) ?? "") : "";
+          bridge.pop(evalCo, nr);
+          const [r, c, d] = payload.split("|").map(Number);
+          post({ type: "WORLD_PATCH", patches: [{ kind: "hathi", row: r, col: c, dir: d }] });
+
+        } else if (tag === "__hathi:tile") {
+          const payload = nr >= 2 ? (bridge.tostring(evalCo, -nr + 1) ?? "") : "";
+          bridge.pop(evalCo, nr);
+          const parts = payload.split("|");
+          const row = parseInt(parts[0], 10);
+          const col = parseInt(parts[1], 10);
+          const tile = parts[2];
+          post({ type: "WORLD_PATCH", patches: [{ kind: "tile", row, col, tile }] });
+
+        } else if (tag === "__world_init") {
+          const payload = nr >= 2 ? (bridge.tostring(evalCo, -nr + 1) ?? "") : "";
+          bridge.pop(evalCo, nr);
+          const parts = payload.split("|");
+          const dir = parseInt(parts.pop()!, 10);
+          const startC = parseInt(parts.pop()!, 10);
+          const startR = parseInt(parts.pop()!, 10);
+          post({ type: "SHOW_WORLD" });
+          post({ type: "WORLD_INIT", level: parts, hathiRow: startR, hathiCol: startC, hathiDir: dir });
+
+        } else if (tag === "__file_save") {
+          const fileName = nr >= 2 ? (bridge.tostring(evalCo, -nr + 1) ?? "download") : "download";
+          const content = nr >= 3 ? (bridge.tostring(evalCo, -nr + 2) ?? "") : "";
+          bridge.pop(evalCo, nr);
+          post({ type: "FILE_SAVE", name: fileName, content });
+
+        } else if (tag && tag.startsWith("__sleep:")) {
+          // Sleep: skip the delay in debug eval, just continue
+          bridge.pop(evalCo, nr);
+
+        } else if (tag === "__stdin" || (tag && tag.startsWith("__http:"))) {
+          // Async operations not supported in debug eval
+          bridge.pop(evalCo, nr);
+          post({ type: "ERROR", message: `${tag} ist im Debug-REPL nicht verfügbar` });
+          evalAborted = true;
+          break;
+
+        } else {
+          // Unknown yield — skip
+          bridge.pop(evalCo, nr);
+        }
+
+        evalStatus = bridge.resume(evalCo, L, 0);
+      }
+
+      if (!evalAborted) {
+        if (evalStatus === 0) {
+          // Success — collect return values
+          const nr = bridge.get_nresults();
+          if (nr > 0) {
+            const parts: string[] = [];
+            for (let i = -nr; i <= -1; i++) {
+              parts.push(bridge.repr(evalCo, i) || "nil");
+            }
+            post({ type: "REPL_RESULT", value: parts.join("\t") });
+          } else {
+            post({ type: "REPL_RESULT", value: null });
+          }
+        } else {
+          // Lua error
+          const err = bridge.tostring(evalCo, -1) ?? "eval error";
+          post({ type: "ERROR", message: err });
+        }
+      }
+      bridge.pop(L, 1); // pop evalCo thread
+      post({ type: "STATUS", state: "paused" });
       break;
     }
   }
