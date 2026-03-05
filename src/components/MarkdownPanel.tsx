@@ -454,7 +454,7 @@ export default function MarkdownPanel({
                     fontWeight: item.active ? 600 : 400,
                     border: "none",
                     cursor: "pointer",
-                    font: "inherit",
+                    fontFamily: "inherit",
                     fontSize: 14,
                   }}
                 >
@@ -487,7 +487,7 @@ export default function MarkdownPanel({
                       fontWeight: h.level === 1 ? 500 : 400,
                       border: "none",
                       cursor: "pointer",
-                      font: "inherit",
+                      fontFamily: "inherit",
                       fontSize: h.level === 1 ? 13 : 12,
                     }}
                   >
