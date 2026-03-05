@@ -8,6 +8,7 @@ import type { PlaygroundContext } from "@/components/PlaygroundLayout";
 import MarkdownPanel, { type TutorialEntry, type TocHeading, parseHeadings } from "@/components/MarkdownPanel";
 import basePath from "@/lib/basePath";
 import { parseSolution, checkSolution, type ParsedSolution, type CheckResult } from "@/lib/solutionChecker";
+import Confetti from "@/components/Confetti";
 import type { WorkerState } from "@/lib/protocol";
 
 const IsometricWorld = dynamic(() => import("@/components/IsometricWorld"), {
@@ -315,7 +316,7 @@ export default function FolderPage() {
         ) : markdownPanel;
 
         return (
-          <>
+          <div style={{ position: "relative", display: "flex", flexDirection: "column", flex: 1, minWidth: 0, minHeight: 0 }}>
             <SolutionWatcher
               status={ctx.status}
               consoleLines={ctx.consoleLines}
@@ -324,8 +325,9 @@ export default function FolderPage() {
               setCheckResult={setCheckResult}
               setConsoleLines={ctx.setConsoleLines}
             />
+            <Confetti active={checkResult !== null && checkResult.codeMatch && (checkResult.outputMatch === null || checkResult.outputMatch)} />
             {content}
-          </>
+          </div>
         );
       }}
     />
