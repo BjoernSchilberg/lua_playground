@@ -54,6 +54,12 @@ export default function Toolbar({
   const [openGroup, setOpenGroup] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
+  /* ---- Track step-mode to keep Continue button stable ---- */
+  const stepModeRef = useRef(false);
+  if (isPaused) stepModeRef.current = true;
+  if (status === "idle") stepModeRef.current = false;
+  const showContinue = stepModeRef.current;
+
   /* ---- Listen for palette-triggered save ---- */
   useEffect(() => {
     const handler = () => {
@@ -156,10 +162,10 @@ export default function Toolbar({
       </h1>
 
       {/* ---- File menu ---- */}
-      <div className="relative" ref={menuRef}>
+      <div className="relative shrink-0" ref={menuRef}>
         <button
           onClick={() => { setShowFileMenu((v) => !v); setSaveDialogOpen(false); }}
-          className="px-3 py-1 rounded bg-blue-700 hover:bg-blue-600 text-sm font-semibold transition-colors"
+          className="px-3 py-1 rounded bg-blue-700 hover:bg-blue-600 text-sm font-semibold transition-colors whitespace-nowrap"
         >
           📁 File
         </button>
@@ -344,7 +350,7 @@ export default function Toolbar({
       <button
         onClick={onRun}
         disabled={!ready || isBusy}
-        className="px-3 py-1 rounded bg-green-700 hover:bg-green-600 disabled:opacity-40 disabled:cursor-not-allowed text-sm font-semibold transition-colors"
+        className="shrink-0 px-3 py-1 rounded bg-green-700 hover:bg-green-600 disabled:opacity-40 disabled:cursor-not-allowed text-sm font-semibold transition-colors"
         title="Run (Ctrl+Enter)"
       >
         ▶ Run
@@ -352,31 +358,30 @@ export default function Toolbar({
       <button
         onClick={onStep}
         disabled={!ready || (isBusy && !isPaused)}
-        className="px-3 py-1 rounded bg-blue-700 hover:bg-blue-600 disabled:opacity-40 disabled:cursor-not-allowed text-sm font-semibold transition-colors"
+        className="shrink-0 px-3 py-1 rounded bg-blue-700 hover:bg-blue-600 disabled:opacity-40 disabled:cursor-not-allowed text-sm font-semibold transition-colors"
         title="Step (F10)"
       >
         ⏭ Step
       </button>
-      {isPaused && (
-        <button
-          onClick={onContinue}
-          className="px-3 py-1 rounded bg-green-700 hover:bg-green-600 text-sm font-semibold transition-colors"
-          title="Continue (F5)"
-        >
-          ▶▶ Continue
-        </button>
-      )}
+      <button
+        onClick={onContinue}
+        disabled={!isPaused}
+        className={`shrink-0 px-3 py-1 rounded text-sm font-semibold transition-colors ${showContinue ? "bg-green-700 hover:bg-green-600 disabled:opacity-40 disabled:cursor-not-allowed" : "hidden"}`}
+        title="Continue (F5)"
+      >
+        ▶▶ Continue
+      </button>
       <button
         onClick={onStop}
         disabled={!isBusy}
-        className="px-3 py-1 rounded bg-red-700 hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed text-sm font-semibold transition-colors"
+        className="shrink-0 px-3 py-1 rounded bg-red-700 hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed text-sm font-semibold transition-colors"
       >
         ⏹ Stop
       </button>
       <button
         onClick={onReset}
         disabled={!ready}
-        className="px-3 py-1 rounded disabled:opacity-40 disabled:cursor-not-allowed text-sm font-semibold transition-colors"
+        className="shrink-0 px-3 py-1 rounded disabled:opacity-40 disabled:cursor-not-allowed text-sm font-semibold transition-colors"
         style={{ backgroundColor: ui.btnNeutral, color: ui.btnNeutralText }}
         onMouseEnter={(e) => e.currentTarget.style.backgroundColor = ui.btnNeutralHover}
         onMouseLeave={(e) => e.currentTarget.style.backgroundColor = ui.btnNeutral}
@@ -385,7 +390,7 @@ export default function Toolbar({
       </button>
 
       {/* Speed slider */}
-      <div className="flex items-center gap-1.5 ml-2" title={`Geschwindigkeit: ${speed}×`}>
+      <div className="flex items-center gap-1.5 ml-2 shrink-0" title={`Geschwindigkeit: ${speed}×`}>
         <span className="text-xs" style={{ color: ui.muted }}>🐢</span>
         <input
           type="range"
