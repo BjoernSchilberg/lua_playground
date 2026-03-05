@@ -59,6 +59,7 @@ export function useLuaWorker(
         break;
       case "STATUS":
         setStatusAndRef(msg.state);
+        if (msg.state === "idle") setPausedLine(null);
         break;
       case "STDIN_REQUEST":
         break;
