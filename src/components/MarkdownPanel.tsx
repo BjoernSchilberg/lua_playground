@@ -123,22 +123,9 @@ export default function MarkdownPanel({
   const [tocOpen, setTocOpen] = useState(false);
   const [fontSize, setFontSize] = useState(15);
   const [showSource, setShowSource] = useState(false);
-  const tocRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const pendingScrollRef = useRef<string | null>(null);
   const hasScrolledInitialHash = useRef(false);
-
-  /* Close TOC on outside click */
-  useEffect(() => {
-    if (!tocOpen) return;
-    const handler = (e: MouseEvent) => {
-      if (tocRef.current && !tocRef.current.contains(e.target as Node)) {
-        setTocOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [tocOpen]);
 
   /* Fetch the .md file */
   const fetchMarkdown = useCallback((file: string, reset = true) => {
@@ -336,7 +323,9 @@ export default function MarkdownPanel({
     <div
       tabIndex={0}
       onKeyDown={(e) => {
-        if (e.key === "+" || e.key === "=") {
+        if (e.key === "Escape" && tocOpen) {
+          setTocOpen(false);
+        } else if (e.key === "+" || e.key === "=") {
           e.preventDefault();
           setFontSize((s) => Math.min(24, s + 1));
         } else if (e.key === "-") {
@@ -368,101 +357,17 @@ export default function MarkdownPanel({
     >
       {/* Navigation top */}
       <div className="md-nav-bar" style={{ borderBottom: `1px solid ${ui.border}`, position: "relative" }}>
-        {/* Hamburger menu */}
+        {/* Hamburger / close toggle */}
         {toc && toc.length > 0 && (
-          <div ref={tocRef} style={{ position: "relative" }}>
-            <button
-              type="button"
-              onClick={() => setTocOpen((v) => !v)}
-              className="md-nav-link"
-              style={{ background: "none", border: "none", cursor: "pointer", padding: "0 8px", font: "inherit", fontSize: 18, lineHeight: 1 }}
-              title="Inhaltsverzeichnis"
-            >
-              {tocOpen ? "✕" : "☰"}
-            </button>
-            {tocOpen && (
-              <div
-                className="md-toc-dropdown themed-scrollbar"
-                style={{
-                  position: "absolute",
-                  top: "100%",
-                  left: 0,
-                  zIndex: 50,
-                  minWidth: 260,
-                  maxHeight: "60vh",
-                  overflowY: "auto",
-                  background: ui.surface,
-                  border: `1px solid ${ui.border}`,
-                  borderRadius: 6,
-                  boxShadow: "0 4px 16px rgba(0,0,0,0.25)",
-                  padding: "4px 0",
-                }}
-              >
-                {toc.map((item, i) => (
-                  <React.Fragment key={i}>
-                    <button
-                      type="button"
-                      onClick={() => { item.onSelect(); setTocOpen(false); }}
-                      className="md-toc-item"
-                      style={{
-                        display: "block",
-                        width: "100%",
-                        textAlign: "left",
-                        padding: "6px 14px",
-                        background: item.active ? (ui.isDark ? "#2563eb" : "#dbeafe") : "transparent",
-                        color: item.active ? (ui.isDark ? "#fff" : "#1e40af") : ui.fg,
-                        fontWeight: item.active ? 600 : 400,
-                        border: "none",
-                        cursor: "pointer",
-                        font: "inherit",
-                        fontSize: 14,
-                      }}
-                    >
-                      {item.title}
-                    </button>
-                    {/* Show headings for this document */}
-                    {item.headings && item.headings.map((h, j) => (
-                      <button
-                        key={`h-${j}`}
-                        type="button"
-                        onClick={() => {
-                          if (item.active) {
-                            /* Same doc: just scroll */
-                            scrollToHeading(h.id);
-                            onHashChange?.(h.id);
-                          } else {
-                            /* Different doc: navigate first, then scroll after load */
-                            pendingScrollRef.current = h.id;
-                            item.onSelect();
-                          }
-                          setTocOpen(false);
-                        }}
-                        className="md-toc-item md-toc-heading"
-                        style={{
-                          display: "block",
-                          width: "100%",
-                          textAlign: "left",
-                          paddingLeft: h.level === 1 ? 28 : 42,
-                          paddingRight: 14,
-                          paddingTop: 4,
-                          paddingBottom: 4,
-                          background: "transparent",
-                          color: ui.muted,
-                          fontWeight: h.level === 1 ? 500 : 400,
-                          border: "none",
-                          cursor: "pointer",
-                          font: "inherit",
-                          fontSize: h.level === 1 ? 13 : 12,
-                        }}
-                      >
-                        {h.text}
-                      </button>
-                    ))}
-                  </React.Fragment>
-                ))}
-              </div>
-            )}
-          </div>
+          <button
+            type="button"
+            onClick={() => setTocOpen((v) => !v)}
+            className="md-nav-link"
+            style={{ background: "none", border: "none", cursor: "pointer", padding: "0 8px", font: "inherit", fontSize: 18, lineHeight: 1 }}
+            title="Inhaltsverzeichnis"
+          >
+            {tocOpen ? "✕" : "☰"}
+          </button>
         )}
         <span style={{ flex: 1 }} />
         {/* Font size controls */}
@@ -517,10 +422,87 @@ export default function MarkdownPanel({
         </button>
       </div>
 
+      {/* TOC sidebar + Content */}
+      <div style={{ display: "flex", flex: 1, minHeight: 0 }}>
+        {tocOpen && toc && toc.length > 0 && (
+          <nav
+            className="themed-scrollbar"
+            style={{
+              width: 240,
+              flexShrink: 0,
+              overflowY: "auto",
+              borderRight: `1px solid ${ui.border}`,
+              background: ui.surface,
+              padding: "4px 0",
+              ["--scrollbar-thumb" as string]: ui.handle,
+              ["--scrollbar-thumb-hover" as string]: ui.border,
+            }}
+          >
+            {toc.map((item, i) => (
+              <React.Fragment key={i}>
+                <button
+                  type="button"
+                  onClick={() => item.onSelect()}
+                  className="md-toc-item"
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    textAlign: "left",
+                    padding: "6px 14px",
+                    background: item.active ? (ui.isDark ? "#2563eb" : "#dbeafe") : "transparent",
+                    color: item.active ? (ui.isDark ? "#fff" : "#1e40af") : ui.fg,
+                    fontWeight: item.active ? 600 : 400,
+                    border: "none",
+                    cursor: "pointer",
+                    font: "inherit",
+                    fontSize: 14,
+                  }}
+                >
+                  {item.title}
+                </button>
+                {item.headings && item.headings.map((h, j) => (
+                  <button
+                    key={`h-${j}`}
+                    type="button"
+                    onClick={() => {
+                      if (item.active) {
+                        scrollToHeading(h.id);
+                        onHashChange?.(h.id);
+                      } else {
+                        pendingScrollRef.current = h.id;
+                        item.onSelect();
+                      }
+                    }}
+                    className="md-toc-item md-toc-heading"
+                    style={{
+                      display: "block",
+                      width: "100%",
+                      textAlign: "left",
+                      paddingLeft: h.level === 1 ? 28 : 42,
+                      paddingRight: 14,
+                      paddingTop: 4,
+                      paddingBottom: 4,
+                      background: "transparent",
+                      color: ui.muted,
+                      fontWeight: h.level === 1 ? 500 : 400,
+                      border: "none",
+                      cursor: "pointer",
+                      font: "inherit",
+                      fontSize: h.level === 1 ? 13 : 12,
+                    }}
+                  >
+                    {h.text}
+                  </button>
+                ))}
+              </React.Fragment>
+            ))}
+          </nav>
+        )}
+
       {/* Content */}
       <div
         ref={contentRef}
-        className="flex-1 overflow-y-auto themed-scrollbar px-6 py-4"
+        className="flex-1 min-w-0 overflow-y-auto themed-scrollbar px-6 py-4"
         style={{ fontSize }}
         onClick={(e) => {
           // Intercept clicks on #fragment links and scroll within the panel
@@ -584,6 +566,7 @@ export default function MarkdownPanel({
             }}
           >{markdown}</pre>
         )}
+      </div>
       </div>
 
       {/* Navigation bottom */}
