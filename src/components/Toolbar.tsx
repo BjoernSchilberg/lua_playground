@@ -25,6 +25,7 @@ interface ToolbarProps {
   fileInputRef: React.RefObject<HTMLInputElement | null>;
   speed: number;
   onSpeedChange: (factor: number) => void;
+  showWorld: boolean;
 }
 
 export default function Toolbar({
@@ -46,6 +47,7 @@ export default function Toolbar({
   fileInputRef,
   speed,
   onSpeedChange,
+  showWorld,
 }: ToolbarProps) {
   const [showFileMenu, setShowFileMenu] = useState(false);
   const [savedNames, setSavedNames] = useState<string[]>([]);
@@ -389,7 +391,8 @@ export default function Toolbar({
         ↻ Reset
       </button>
 
-      {/* Speed slider */}
+      {/* Speed slider — only when IsometricWorld is visible */}
+      {showWorld && (
       <div className="flex items-center gap-1.5 ml-2 shrink-0" title={`Geschwindigkeit: ${speed}×`}>
         <span className="text-xs" style={{ color: ui.muted }}>🐢</span>
         <input
@@ -404,6 +407,7 @@ export default function Toolbar({
         <span className="text-xs" style={{ color: ui.muted }}>🐇</span>
         <span className="text-xs tabular-nums w-6 text-center" style={{ color: ui.muted }}>{speed}×</span>
       </div>
+      )}
 
       <span
         className={`ml-auto px-2 py-0.5 rounded text-xs font-medium ${status !== "idle" ? STATUS_COLORS[status] : ""}`}

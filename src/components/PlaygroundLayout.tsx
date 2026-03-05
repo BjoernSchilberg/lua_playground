@@ -380,6 +380,7 @@ export default function PlaygroundLayout({
           fileInputRef={fileInputRef}
           speed={worker.speed}
           onSpeedChange={worker.setSpeed}
+          showWorld={worker.showWorld}
         />
 
         {/* Editor + Console area (for VDrag height measurement) */}
