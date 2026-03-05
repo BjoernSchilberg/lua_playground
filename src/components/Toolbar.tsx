@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import type { UiColors } from "@/lib/uiColors";
 import type { WorkerState } from "@/lib/protocol";
 import { EXAMPLE_GROUPS, STATUS_LABELS, STATUS_COLORS } from "@/lib/constants";
@@ -55,6 +55,19 @@ export default function Toolbar({
   const [saveName, setSaveName] = useState("");
   const [openGroup, setOpenGroup] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const headerRef = useRef<HTMLElement | null>(null);
+
+  /* ---- Compact mode when toolbar is narrow ---- */
+  const [compact, setCompact] = useState(false);
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => {
+      setCompact(entry.contentRect.width < 640);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   /* ---- Track step-mode to keep Continue button stable ---- */
   const stepModeRef = useRef(false);
@@ -152,6 +165,7 @@ export default function Toolbar({
 
   return (
     <header
+      ref={headerRef}
       className="flex items-center gap-3 px-4 py-2 shrink-0 transition-colors duration-200"
       style={{ backgroundColor: ui.surface, borderBottom: `1px solid ${ui.border}` }}
     >
@@ -160,7 +174,7 @@ export default function Toolbar({
           className="cursor-pointer hover:opacity-75 transition-opacity"
           onClick={onPaletteOpen}
           title="Command Palette (Ctrl+Shift+P)"
-        >🌙</span>{" "}Lua Playground
+        >🌙</span>{!compact && <>{" "}Lua Playground</>}
       </h1>
 
       {/* ---- File menu ---- */}
@@ -169,7 +183,7 @@ export default function Toolbar({
           onClick={() => { setShowFileMenu((v) => !v); setSaveDialogOpen(false); }}
           className="px-3 py-1 rounded bg-blue-700 hover:bg-blue-600 text-sm font-semibold transition-colors whitespace-nowrap"
         >
-          📁 File
+          📁{!compact && " File"}
         </button>
 
         {showFileMenu && (
@@ -355,7 +369,7 @@ export default function Toolbar({
         className="shrink-0 px-3 py-1 rounded bg-green-700 hover:bg-green-600 disabled:opacity-40 disabled:cursor-not-allowed text-sm font-semibold transition-colors"
         title="Run (Ctrl+Enter)"
       >
-        ▶ Run
+        ▶{!compact && " Run"}
       </button>
       <button
         onClick={onStep}
@@ -363,7 +377,7 @@ export default function Toolbar({
         className="shrink-0 px-3 py-1 rounded bg-blue-700 hover:bg-blue-600 disabled:opacity-40 disabled:cursor-not-allowed text-sm font-semibold transition-colors"
         title="Step (F10)"
       >
-        ⏭ Step
+        ⏭{!compact && " Step"}
       </button>
       <button
         onClick={onContinue}
@@ -371,14 +385,14 @@ export default function Toolbar({
         className={`shrink-0 px-3 py-1 rounded text-sm font-semibold transition-colors ${showContinue ? "bg-green-700 hover:bg-green-600 disabled:opacity-40 disabled:cursor-not-allowed" : "hidden"}`}
         title="Continue (F5)"
       >
-        ▶▶ Continue
+        ▶▶{!compact && " Continue"}
       </button>
       <button
         onClick={onStop}
         disabled={!isBusy}
         className="shrink-0 px-3 py-1 rounded bg-red-700 hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed text-sm font-semibold transition-colors"
       >
-        ⏹ Stop
+        ⏹{!compact && " Stop"}
       </button>
       <button
         onClick={onReset}
@@ -388,7 +402,7 @@ export default function Toolbar({
         onMouseEnter={(e) => e.currentTarget.style.backgroundColor = ui.btnNeutralHover}
         onMouseLeave={(e) => e.currentTarget.style.backgroundColor = ui.btnNeutral}
       >
-        ↻ Reset
+        ↻{!compact && " Reset"}
       </button>
 
       {/* Speed slider — only when IsometricWorld is visible */}
