@@ -263,6 +263,11 @@ export default function PlaygroundLayout({
   /* ---- Global keyboard shortcuts ---- */
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      if (e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.key.toLowerCase() === "n") {
+        e.preventDefault();
+        setCodeExt("");
+        setCurrentFileName("");
+      }
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "P") {
         e.preventDefault();
         theme.setPaletteOpen((prev: boolean) => {

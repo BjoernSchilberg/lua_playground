@@ -78,7 +78,7 @@ export function useThemePalette({
       { id: "clipboard:copy", label: "Copy", category: "Clipboard", shortcut: "Ctrl+C" },
       { id: "clipboard:cut", label: "Cut", category: "Clipboard", shortcut: "Ctrl+X" },
       { id: "clipboard:paste", label: "Paste", category: "Clipboard", shortcut: "Ctrl+V" },
-      { id: "file:new", label: "Neu", category: "File" },
+      { id: "file:new", label: "Neu", category: "File", shortcut: "Alt+N" },
       { id: "file:save", label: "Speichern…", category: "File" },
       { id: "file:download", label: "Download .lua", category: "File" },
       { id: "file:open", label: "Datei öffnen…", category: "File" },

@@ -194,12 +194,13 @@ export default function Toolbar({
             {/* New */}
             <button
               onClick={() => { setCode(""); setCurrentFileName(""); setShowFileMenu(false); }}
-              className="w-full text-left px-3 py-2 transition-colors"
+              className="w-full text-left px-3 py-2 transition-colors flex items-center justify-between"
               style={{ color: ui.fg }}
               onMouseEnter={(e) => e.currentTarget.style.backgroundColor = ui.surface}
               onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
             >
-              📝 Neu
+              <span>📝 Neu</span>
+              <kbd className="text-xs opacity-50">Alt+N</kbd>
             </button>
 
             {/* Save */}
