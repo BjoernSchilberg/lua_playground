@@ -324,10 +324,14 @@ export default function IsometricWorld({
     // Hathi — compute position and SVG name (separate from tile items for animation)
     const displayDir = (hathiDir + viewStep) % 4;
     const hp = project(animRow, animCol, centerRow, centerCol, viewStep);
+    // Use TARGET position for depth so z-ordering is stable during animation.
+    // Using the animated (interpolated) depth causes tiles to "pop" in front of
+    // or behind Hathi mid-move, visible especially at slow speeds.
+    const hpTarget = project(hathiRow, hathiCol, centerRow, centerCol, viewStep);
     const hathiItem = {
       x: hp.x,
       y: hp.y,
-      depth: hp.depth + 0.5,
+      depth: hpTarget.depth + 0.5,
       svgName: `hathi_${HATHI_FILE_INDEX[displayDir]}`,
     };
 
@@ -384,7 +388,7 @@ export default function IsometricWorld({
       viewBox: `${vbX} ${vbY} ${vbW} ${vbH}`,
       vbY,
     };
-  }, [level, svgsLoaded, viewStep, animRow, animCol, hathiDir]);
+  }, [level, svgsLoaded, viewStep, animRow, animCol, hathiRow, hathiCol, hathiDir]);
 
   /* ---------------------------------------------------------------- */
   /*  Auto-dismiss speech bubble                                      */
