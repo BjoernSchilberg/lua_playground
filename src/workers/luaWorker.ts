@@ -266,6 +266,10 @@ function hathi.help()
   print("╚════════════════╧═════════════════╧═════════════════════════╝")
 end
 hathi.hilfe = hathi.help
+
+-- os.exit() — cleanly stop execution in the browser sandbox
+if not os then os = {} end
+os.exit = function() coroutine.yield("__exit") end
 `;
 
 /** Number of lines in the preamble – subtracted from error line numbers */
@@ -517,6 +521,15 @@ function tick() {
     // coroutine.yield(tag, ...) pushes values on the stack:
     //   stack[-nresults] = tag, stack[-nresults+1] = arg1, ...
     const yieldTag = bridge.tostring(co, -nresults);
+
+    if (yieldTag === "__exit") {
+      // os.exit() — cleanly terminate the program
+      bridge.pop(co, nresults);
+      running = false;
+      waitingInput = false;
+      post({ type: "STATUS", state: "idle" });
+      return;
+    }
 
     if (yieldTag === "__stdout") {
       // print / io.write yielded text as second argument
