@@ -1,12 +1,24 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useRef } from "react";
 
 const COLORS = ["#f44336", "#e91e63", "#9c27b0", "#673ab7", "#3f51b5",
   "#2196f3", "#00bcd4", "#4caf50", "#8bc34a", "#ffeb3b",
   "#ff9800", "#ff5722", "#e040fb", "#00e676", "#ffd740"];
 const PARTICLE_COUNT = 60;
 const DURATION = 3000; // ms
+
+function generateParticles(): Particle[] {
+  return Array.from({ length: PARTICLE_COUNT }, () => ({
+    x: Math.random() * 100,
+    delay: Math.random() * 0.6,
+    dur: 1.8 + Math.random() * 1.4,
+    size: 5 + Math.random() * 6,
+    color: COLORS[Math.floor(Math.random() * COLORS.length)],
+    drift: (Math.random() - 0.5) * 120,
+    rot: Math.random() * 720 - 360,
+  }));
+}
 
 interface Particle {
   x: number;   // % from left
@@ -20,25 +32,19 @@ interface Particle {
 
 export default function Confetti({ active }: { active: boolean }) {
   const [visible, setVisible] = useState(false);
-
-  const particles = useMemo<Particle[]>(() =>
-    Array.from({ length: PARTICLE_COUNT }, () => ({
-      x: Math.random() * 100,
-      delay: Math.random() * 0.6,
-      dur: 1.8 + Math.random() * 1.4,
-      size: 5 + Math.random() * 6,
-      color: COLORS[Math.floor(Math.random() * COLORS.length)],
-      drift: (Math.random() - 0.5) * 120,
-      rot: Math.random() * 720 - 360,
-    })),
-  []);
+  const particlesRef = useRef<Particle[]>(generateParticles());
+  const prevActiveRef = useRef(false);
 
   useEffect(() => {
-    if (active) {
+    if (active && !prevActiveRef.current) {
+      // Re-randomize on each new activation
+      particlesRef.current = generateParticles();
       setVisible(true);
       const t = setTimeout(() => setVisible(false), DURATION);
+      prevActiveRef.current = active;
       return () => clearTimeout(t);
     }
+    prevActiveRef.current = active;
   }, [active]);
 
   if (!visible) return null;
@@ -54,7 +60,7 @@ export default function Confetti({ active }: { active: boolean }) {
       }}
       aria-hidden
     >
-      {particles.map((p, i) => (
+      {particlesRef.current.map((p, i) => (
         <span
           key={i}
           style={{
