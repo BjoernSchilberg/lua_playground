@@ -4,8 +4,11 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import PlaygroundLayout from "@/components/PlaygroundLayout";
+import type { PlaygroundContext } from "@/components/PlaygroundLayout";
 import MarkdownPanel, { type TutorialEntry, type TocHeading, parseHeadings } from "@/components/MarkdownPanel";
 import basePath from "@/lib/basePath";
+import { parseSolution, checkSolution, type ParsedSolution, type CheckResult } from "@/lib/solutionChecker";
+import type { WorkerState } from "@/lib/protocol";
 
 const IsometricWorld = dynamic(() => import("@/components/IsometricWorld"), {
   ssr: false,
@@ -15,6 +18,55 @@ const IsometricWorld = dynamic(() => import("@/components/IsometricWorld"), {
     </div>
   ),
 });
+
+/* ------------------------------------------------------------------ */
+/*  Solution checker watcher (rendered inside render prop)             */
+/* ------------------------------------------------------------------ */
+
+function SolutionWatcher({
+  status,
+  consoleLines,
+  code,
+  solutionData,
+  setCheckResult,
+  setConsoleLines,
+}: {
+  status: WorkerState;
+  consoleLines: { text: string; isError?: boolean }[];
+  code: string;
+  solutionData: ParsedSolution | null;
+  setCheckResult: (r: CheckResult | null) => void;
+  setConsoleLines: React.Dispatch<React.SetStateAction<{ text: string; isError?: boolean }[]>>;
+}) {
+  const prevStatusRef = useRef<WorkerState>(status);
+
+  useEffect(() => {
+    const prev = prevStatusRef.current;
+    prevStatusRef.current = status;
+
+    if (status === "running") {
+      setCheckResult(null);
+      return;
+    }
+
+    if (prev === "running" && status === "idle" && solutionData && solutionData.solutions.length > 0) {
+      const output = consoleLines
+        .filter((l) => !l.isError)
+        .map((l) => l.text)
+        .join("");
+      const result = checkSolution(code, output, solutionData);
+      setCheckResult(result);
+
+      const allMatch = result.codeMatch && (result.outputMatch === null || result.outputMatch);
+      const msg = allMatch
+        ? "\u2705 Lösung korrekt!\n"
+        : "\u274C Noch nicht ganz richtig.\n";
+      setConsoleLines((prev) => [...prev, { text: msg }]);
+    }
+  }, [status, consoleLines, code, solutionData, setCheckResult, setConsoleLines]);
+
+  return null;
+}
 
 export default function FolderPage() {
   const params = useParams<{ folder: string }>();
@@ -28,6 +80,10 @@ export default function FolderPage() {
   const manifestRef = useRef<TutorialEntry[] | null>(null);
   /** Suppress pushState when navigating via popstate (browser back/forward) */
   const suppressPushRef = useRef(false);
+
+  /* ---- Solution checking state ---- */
+  const [solutionData, setSolutionData] = useState<ParsedSolution | null>(null);
+  const [checkResult, setCheckResult] = useState<CheckResult | null>(null);
 
   /* ---- Fetch manifest ---- */
   useEffect(() => {
@@ -82,6 +138,24 @@ export default function FolderPage() {
       })
       .catch(() => setManifest([]));
   }, [folder]);
+
+  /* ---- Fetch solution file for current chapter ---- */
+  const currentFile = manifest && manifest.length > 0 ? manifest[currentIdx]?.file : null;
+  useEffect(() => {
+    setSolutionData(null);
+    setCheckResult(null);
+    if (!currentFile) return;
+    const m = currentFile.match(/chapter(\d+)/);
+    if (!m) return;
+    const solFile = `solution${m[1]}.md`;
+    fetch(`${basePath}/${folder}/${solFile}`)
+      .then((r) => {
+        if (!r.ok) throw new Error("not found");
+        return r.text();
+      })
+      .then((md) => setSolutionData(parseSolution(md)))
+      .catch(() => setSolutionData(null));
+  }, [currentFile, folder]);
 
   /* ---- Update URL when currentIdx changes ---- */
   useEffect(() => {
@@ -189,6 +263,7 @@ export default function FolderPage() {
             src={entry.file}
             baseDir={folder}
             ui={ctx.ui}
+            checkResult={checkResult}
             onLoadCode={(code) => {
               const trimmed = ctx.code.trimEnd();
               ctx.setCode(trimmed ? trimmed + "\n\n" + code : code);
@@ -213,35 +288,45 @@ export default function FolderPage() {
           </div>
         );
 
-        if (ctx.showWorld) {
-          return (
-            <div ref={rightSplitRef} className="flex flex-col min-w-0 h-full flex-1">
-              <div className="min-h-0" style={{ flex: `${worldPct} 0 0%` }}>
-                <IsometricWorld
-                  level={ctx.worldLevel}
-                  hathiRow={ctx.hathiPos.row}
-                  hathiCol={ctx.hathiPos.col}
-                  hathiDir={ctx.hathiPos.dir}
-                  bgColor={ctx.ui.surface2}
-                  speech={ctx.hathiSpeech}
-                  speechAudio={ctx.hathiSpeechAudio}
-                  onSpeechDone={() => ctx.setHathiSpeech(null)}
-                />
-              </div>
-              <div
-                onMouseDown={startWorldVDrag}
-                onTouchStart={startWorldVDrag}
-                className="h-0.5 cursor-row-resize hover:!bg-blue-500 active:!bg-blue-500 transition-colors shrink-0 touch-none"
-                style={{ backgroundColor: ctx.ui.border }}
+        const content = ctx.showWorld ? (
+          <div ref={rightSplitRef} className="flex flex-col min-w-0 h-full flex-1">
+            <div className="min-h-0" style={{ flex: `${worldPct} 0 0%` }}>
+              <IsometricWorld
+                level={ctx.worldLevel}
+                hathiRow={ctx.hathiPos.row}
+                hathiCol={ctx.hathiPos.col}
+                hathiDir={ctx.hathiPos.dir}
+                bgColor={ctx.ui.surface2}
+                speech={ctx.hathiSpeech}
+                speechAudio={ctx.hathiSpeechAudio}
+                onSpeechDone={() => ctx.setHathiSpeech(null)}
               />
-              <div className="min-h-0 flex flex-col" style={{ flex: `${100 - worldPct} 0 0%` }}>
-                {markdownPanel}
-              </div>
             </div>
-          );
-        }
+            <div
+              onMouseDown={startWorldVDrag}
+              onTouchStart={startWorldVDrag}
+              className="h-0.5 cursor-row-resize hover:!bg-blue-500 active:!bg-blue-500 transition-colors shrink-0 touch-none"
+              style={{ backgroundColor: ctx.ui.border }}
+            />
+            <div className="min-h-0 flex flex-col" style={{ flex: `${100 - worldPct} 0 0%` }}>
+              {markdownPanel}
+            </div>
+          </div>
+        ) : markdownPanel;
 
-        return markdownPanel;
+        return (
+          <>
+            <SolutionWatcher
+              status={ctx.status}
+              consoleLines={ctx.consoleLines}
+              code={ctx.code}
+              solutionData={solutionData}
+              setCheckResult={setCheckResult}
+              setConsoleLines={ctx.setConsoleLines}
+            />
+            {content}
+          </>
+        );
       }}
     />
   );

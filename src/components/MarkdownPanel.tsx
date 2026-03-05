@@ -8,6 +8,7 @@ import rehypeHighlight from "rehype-highlight";
 import rehypeRaw from "rehype-raw";
 import basePath from "@/lib/basePath";
 import type { UiColors } from "@/lib/uiColors";
+import type { CheckResult } from "@/lib/solutionChecker";
 import { generateLevel } from "@/lib/levelGenerator";
 
 /* ------------------------------------------------------------------ */
@@ -100,6 +101,8 @@ export interface MarkdownPanelProps {
   onHashChange?: (id: string) => void;
   /** Called when a ```level block is found — receives the level rows */
   onLoadLevel?: (rows: string[]) => void;
+  /** Result of automatic solution check (null = no check / not yet run) */
+  checkResult?: CheckResult | null;
 }
 
 /* ------------------------------------------------------------------ */
@@ -117,6 +120,7 @@ export default function MarkdownPanel({
   onScrollToHeading,
   onHashChange,
   onLoadLevel,
+  checkResult,
 }: MarkdownPanelProps) {
   const [markdown, setMarkdown] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -547,6 +551,30 @@ export default function MarkdownPanel({
             >
               {markdown}
             </ReactMarkdown>
+          </div>
+        )}
+        {checkResult && (
+          <div
+            style={{
+              margin: "12px 0",
+              padding: "10px 14px",
+              borderRadius: 6,
+              fontFamily: "inherit",
+              fontSize: fontSize - 1,
+              backgroundColor: checkResult.codeMatch && (checkResult.outputMatch === null || checkResult.outputMatch)
+                ? (ui.isDark ? "#1a3a1a" : "#d4edda")
+                : (ui.isDark ? "#3a1a1a" : "#f8d7da"),
+              color: checkResult.codeMatch && (checkResult.outputMatch === null || checkResult.outputMatch)
+                ? (ui.isDark ? "#6fdc6f" : "#155724")
+                : (ui.isDark ? "#f08080" : "#721c24"),
+              border: `1px solid ${checkResult.codeMatch && (checkResult.outputMatch === null || checkResult.outputMatch)
+                ? (ui.isDark ? "#2d5a2d" : "#c3e6cb")
+                : (ui.isDark ? "#5a2d2d" : "#f5c6cb")}`,
+            }}
+          >
+            {checkResult.codeMatch && (checkResult.outputMatch === null || checkResult.outputMatch)
+              ? "\u2705 Richtig gel\u00f6st!"
+              : "\u274c Noch nicht ganz richtig."}
           </div>
         )}
         {markdown !== null && showSource && (

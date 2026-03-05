@@ -11,6 +11,7 @@ import EditorPanel from "@/components/EditorPanel";
 import ConsolePanel from "@/components/ConsolePanel";
 import CommandPalette, { type PaletteColors } from "@/components/CommandPalette";
 import type { UiColors } from "@/lib/uiColors";
+import type { WorkerState } from "@/lib/protocol";
 import type { Monaco } from "@monaco-editor/react";
 import type { editor } from "monaco-editor";
 
@@ -22,7 +23,9 @@ export interface PlaygroundContext {
   code: string;
   setCode: (v: string) => void;
   handleRun: () => void;
-  setConsoleLines: (lines: { text: string; stream: "stdout" | "stderr" }[]) => void;
+  status: WorkerState;
+  consoleLines: { text: string; isError?: boolean }[];
+  setConsoleLines: React.Dispatch<React.SetStateAction<{ text: string; isError?: boolean }[]>>;
   ui: UiColors;
   showWorld: boolean;
   setShowWorld: (v: boolean | ((prev: boolean) => boolean)) => void;
@@ -333,6 +336,8 @@ export default function PlaygroundLayout({
     code,
     setCode: setCodeExt,
     handleRun: worker.handleRun,
+    status: worker.status,
+    consoleLines: worker.consoleLines,
     setConsoleLines: worker.setConsoleLines,
     ui,
     showWorld: worker.showWorld,
