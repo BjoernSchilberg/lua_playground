@@ -378,7 +378,7 @@ export default function MarkdownPanel({
               style={{ background: "none", border: "none", cursor: "pointer", padding: "0 8px", font: "inherit", fontSize: 18, lineHeight: 1 }}
               title="Inhaltsverzeichnis"
             >
-              ☰
+              {tocOpen ? "✕" : "☰"}
             </button>
             {tocOpen && (
               <div
