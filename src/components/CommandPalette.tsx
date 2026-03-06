@@ -11,8 +11,34 @@ export interface PaletteItem {
   shortcut?: string;
 }
 
+/** Split a shortcut string like "Ctrl++" or "Alt+N" into key parts. */
+function parseShortcut(s: string): string[] {
+  const parts: string[] = [];
+  let rest = s;
+  while (rest.length > 0) {
+    const idx = rest.indexOf("+");
+    if (idx === -1) {
+      parts.push(rest);
+      break;
+    }
+    if (idx === 0) {
+      // "+" at the start or after another "+" → the key itself is "+"
+      parts.push("+");
+      rest = rest.slice(1);
+      // skip trailing separator "+" if this wasn't the last char
+      if (rest.startsWith("+")) rest = rest.slice(1);
+      else break; // "+" was last token
+    } else {
+      parts.push(rest.slice(0, idx));
+      rest = rest.slice(idx + 1);
+    }
+  }
+  return parts.filter(Boolean);
+}
+
 export interface PaletteColors {
   bg: string;
+
   fg: string;
   border: string;
   muted: string;
@@ -167,15 +193,25 @@ export default function CommandPalette({
                 )}
                 <span className="flex-1">{item.label}</span>
                 {item.shortcut && (
-                  <kbd
-                    className="ml-auto text-[11px] rounded px-1.5 py-0.5 font-sans"
-                    style={{
-                      backgroundColor: isActive ? 'rgba(255,255,255,0.15)' : `${colors.border}66`,
-                      color: isActive ? colors.activeFg : colors.muted,
-                    }}
-                  >
-                    {item.shortcut}
-                  </kbd>
+                  <span className="ml-auto flex items-center gap-0.5">
+                    {parseShortcut(item.shortcut).map((part, i, arr) => (
+                      <span key={i} className="flex items-center gap-0.5">
+                        <kbd
+                          className="text-[11px] rounded px-1.5 py-0.5 font-sans"
+                          style={{
+                            backgroundColor: isActive ? 'rgba(255,255,255,0.15)' : `${colors.border}44`,
+                            color: isActive ? colors.activeFg : colors.muted,
+                            border: `1px solid ${isActive ? 'rgba(255,255,255,0.2)' : `${colors.border}88`}`,
+                          }}
+                        >
+                          {part}
+                        </kbd>
+                        {i < arr.length - 1 && (
+                          <span className="text-[10px]" style={{ color: isActive ? colors.activeFg : colors.muted, opacity: 0.5 }}>+</span>
+                        )}
+                      </span>
+                    ))}
+                  </span>
                 )}
               </div>
             );
