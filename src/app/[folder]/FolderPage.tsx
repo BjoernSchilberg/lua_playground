@@ -20,6 +20,15 @@ const IsometricWorld = dynamic(() => import("@/components/IsometricWorld"), {
   ),
 });
 
+const World3D = dynamic(() => import("@/components/world3d"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center h-full text-neutral-500">
+      Loading world…
+    </div>
+  ),
+});
+
 /* ------------------------------------------------------------------ */
 /*  Solution checker watcher (rendered inside render prop)             */
 /* ------------------------------------------------------------------ */
@@ -289,10 +298,12 @@ export default function FolderPage() {
           </div>
         );
 
+        const WorldComponent = ctx.worldMode === "3d" ? World3D : IsometricWorld;
+
         const content = ctx.showWorld ? (
           <div ref={rightSplitRef} className="flex flex-col min-w-0 h-full flex-1">
             <div className="min-h-0" style={{ flex: `${worldPct} 0 0%` }}>
-              <IsometricWorld
+              <WorldComponent
                 level={ctx.worldLevel}
                 hathiRow={ctx.hathiPos.row}
                 hathiCol={ctx.hathiPos.col}

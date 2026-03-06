@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useMemo, useEffect } from "react";
 import { loadThemeList, fetchThemeData, isBuiltin, getThemeColors, type ThemeEntry } from "@/lib/monacoThemes";
 import { deriveUiColors } from "@/lib/uiColors";
 import { isMac } from "@/lib/platform";
+import type { WorldMode } from "@/components/PlaygroundLayout";
 import type { PaletteItem } from "@/components/CommandPalette";
 import type { Monaco } from "@monaco-editor/react";
 import type { editor } from "monaco-editor";
@@ -10,6 +11,7 @@ interface UseThemePaletteOptions {
   vimEnabled: boolean;
   lineNumbers: boolean;
   showWorld: boolean;
+  worldMode: WorldMode;
   currentFileName: string;
   setCode: (v: string) => void;
   editorRef: React.RefObject<editor.IStandaloneCodeEditor | null>;
@@ -22,6 +24,7 @@ interface UseThemePaletteOptions {
   onToggleVim: () => void;
   onToggleLineNumbers: () => void;
   onToggleWorld: () => void;
+  onToggleWorldMode: () => void;
   onUploadClick: () => void;
 }
 
@@ -29,6 +32,7 @@ export function useThemePalette({
   vimEnabled,
   lineNumbers,
   showWorld,
+  worldMode,
   currentFileName,
   setCode,
   editorRef,
@@ -40,6 +44,7 @@ export function useThemePalette({
   onToggleVim,
   onToggleLineNumbers,
   onToggleWorld,
+  onToggleWorldMode,
   onUploadClick,
 }: UseThemePaletteOptions) {
   const [editorTheme, setEditorTheme] = useState("vs");
@@ -90,9 +95,10 @@ export function useThemePalette({
       { id: "font:zoomReset", label: "Font Zoom Reset", category: "Editor", shortcut: isMac ? "Control+0" : "Ctrl+0" },
       { id: "editor:lineNumbers", label: lineNumbers ? "Hide Line Numbers" : "Show Line Numbers", category: "Editor" },
       { id: "editor:toggleWorld", label: showWorld ? "Hide Isometric World" : "Show Isometric World", category: "Editor" },
+      { id: "editor:worldMode", label: worldMode === "2d" ? "Wechsel zu 3D-Ansicht" : "Wechsel zu 2D-Ansicht", category: "Editor" },
       ...themeList.map((t) => ({ id: `theme:${t.id}`, label: t.label, category: "Theme" })),
     ],
-    [themeList, vimEnabled, lineNumbers, showWorld]
+    [themeList, vimEnabled, lineNumbers, showWorld, worldMode]
   );
 
   const themeBeforePalette = useRef("vs");
@@ -174,6 +180,11 @@ export function useThemePalette({
     }
     if (id === "editor:toggleWorld") {
       onToggleWorld();
+      setPaletteOpen(false);
+      return;
+    }
+    if (id === "editor:worldMode") {
+      onToggleWorldMode();
       setPaletteOpen(false);
       return;
     }
@@ -270,7 +281,7 @@ export function useThemePalette({
     applyThemeColors(themeId, data);
     themeBeforePalette.current = themeId;
     setPaletteOpen(false);
-  }, [themeList, applyThemeColors, currentFileName, setCode, editorRef, luaFmtRef, onRun, onStep, onStop, onReset, onToggleVim, onToggleLineNumbers, onToggleWorld, onUploadClick]);
+  }, [themeList, applyThemeColors, currentFileName, setCode, editorRef, luaFmtRef, onRun, onStep, onStop, onReset, onToggleVim, onToggleLineNumbers, onToggleWorld, onToggleWorldMode, onUploadClick]);
 
   const handlePaletteHighlight = useCallback(async (id: string) => {
     if (!id.startsWith("theme:")) return;

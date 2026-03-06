@@ -12,12 +12,23 @@ const IsometricWorld = dynamic(() => import("@/components/IsometricWorld"), {
   ),
 });
 
+const World3D = dynamic(() => import("@/components/world3d"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center h-full text-neutral-500">
+      Loading world…
+    </div>
+  ),
+});
+
 export default function HomePage() {
   return (
     <PlaygroundLayout
-      rightPanel={(ctx) =>
-        ctx.showWorld ? (
-          <IsometricWorld
+      rightPanel={(ctx) => {
+        if (!ctx.showWorld) return null;
+        const WorldComponent = ctx.worldMode === "3d" ? World3D : IsometricWorld;
+        return (
+          <WorldComponent
             level={ctx.worldLevel}
             hathiRow={ctx.hathiPos.row}
             hathiCol={ctx.hathiPos.col}
@@ -28,8 +39,8 @@ export default function HomePage() {
             onSpeechDone={() => ctx.setHathiSpeech(null)}
             speed={ctx.speed}
           />
-        ) : null
-      }
+        );
+      }}
     />
   );
 }

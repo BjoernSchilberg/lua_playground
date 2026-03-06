@@ -20,6 +20,8 @@ import type { editor } from "monaco-editor";
 /*  Context passed to the right-panel render prop                     */
 /* ------------------------------------------------------------------ */
 
+export type WorldMode = "2d" | "3d";
+
 export interface PlaygroundContext {
   code: string;
   setCode: (v: string) => void;
@@ -42,6 +44,9 @@ export interface PlaygroundContext {
   loadLevel: (rows: string[]) => void;
   /** Execution speed factor (1 = normal) */
   speed: number;
+  /** World renderer mode */
+  worldMode: WorldMode;
+  setWorldMode: (v: WorldMode) => void;
 }
 
 /* ------------------------------------------------------------------ */
@@ -68,6 +73,7 @@ export default function PlaygroundLayout({
   const [currentFileName, setCurrentFileName] = useState("");
   const [vimEnabled, setVimEnabled] = useState(false);
   const [lineNumbers, setLineNumbers] = useState(true);
+  const [worldMode, setWorldMode] = useState<WorldMode>("2d");
 
   /* ---- Refs ---- */
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
@@ -100,6 +106,7 @@ export default function PlaygroundLayout({
     });
   }, []);
   const toggleWorld = useCallback(() => worker.setShowWorld((v: boolean) => !v), [worker]);
+  const toggleWorldMode = useCallback(() => setWorldMode((m) => m === "2d" ? "3d" : "2d"), []);
   const uploadClick = useCallback(() => {
     fileInputRef.current?.click();
   }, []);
@@ -108,6 +115,7 @@ export default function PlaygroundLayout({
     vimEnabled,
     lineNumbers,
     showWorld: worker.showWorld,
+    worldMode,
     currentFileName,
     setCode: setCodeExt,
     editorRef,
@@ -119,6 +127,7 @@ export default function PlaygroundLayout({
     onToggleVim: toggleVim,
     onToggleLineNumbers: toggleLineNumbers,
     onToggleWorld: toggleWorld,
+    onToggleWorldMode: toggleWorldMode,
     onUploadClick: uploadClick,
   });
 
@@ -361,6 +370,8 @@ export default function PlaygroundLayout({
     hathiSpeechAudio: worker.hathiSpeechAudio,
     loadLevel: worker.loadLevel,
     speed: worker.speed,
+    worldMode,
+    setWorldMode,
   };
 
   const rightContent = rightPanel(ctx);
