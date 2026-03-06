@@ -1,25 +1,19 @@
 # Lua Lektion 05 a: Tabellen als Listen und Wörterbücher
 
-
 <!-- mtoc-start -->
 
 * [Tabellen als Listen oder Arrays](#tabellen-als-listen-oder-arrays)
 * [Exkurs: Tabellen sind veränderlich](#exkurs-tabellen-sind-veraenderlich)
 * [Die Anzahl der Elemente](#die-anzahl-der-elemente)
 * [Den Inhalt von listenartigen Tabellen aufzählen](#den-inhalt-von-listenartigen-tabellen-aufzaehlen)
-* [Aufgabe 1.1](#aufgabe-11)
-* [Aufgabe 1.2](#aufgabe-12)
-* [Aufgabe 1.3](#aufgabe-13)
 * [Elemente hinzufügen mit `table.insert()`](#elemente-hinzufuegen-mit-tableinsert)
 * [Elemente entfernen mit `table.remove()`](#elemente-entfernen-mit-tableremove)
-* [Aufgabe 2.1](#aufgabe-21)
-* [Aufgabe 2.2](#aufgabe-22)
 * [Eine Tabelle als Wörterbuch](#eine-tabelle-als-woerterbuch)
 * [Beispiel: Einfaches Übersetzungsprogramm](#beispiel-einfaches-uebersetzungsprogramm)
-* [Aufgabe 3](#aufgabe-3)
 * [Tabelleninhalte durchlaufen mit `pairs()`](#tabelleninhalte-durchlaufen-mit-pairs)
 
 <!-- mtoc-end -->
+
 
 Die fünfte und letzte Lektion unserer kleinen Lua-Einführung behandelt das
 Thema **Tabellen**. Dieses Thema ist besonders spannend und vielseitig.
@@ -254,7 +248,7 @@ Die Ausgabe des Programms sieht so aus:
 
 ---
 
-## Aufgabe 1.1
+### Aufgabe 1.1
 
 Schreibe ein Programm, bei dem die Nutzerin in einer Schleife gefragt wird, was
 sie in die Tasche tun möchte. Diese Eingaben sollen in einer Tabelle `tasche`
@@ -263,10 +257,10 @@ wie viele Elemente bereits in der Tasche sind:
 
 ```text
 Was möchtest Du in die Tasche tun?
-$ Kartoffeln
+> Kartoffeln
 Anzahl der Elemente in der Tasche: 1
 Was möchtest Du in die Tasche tun?
-$ Quark
+> Quark
 Anzahl der Elemente in der Tasche: 2
 ```
 
@@ -288,18 +282,18 @@ end
 
 ---
 
-## Aufgabe 1.2
+### Aufgabe 1.2
 
 Erweitere die Lösung von Aufgabe 1.1, sodass nach jeder Eingabe nicht mehr die
 Anzahl der Elemente genannt, sondern alle Elemente aufgezählt werden:
 
 ```text
 Was möchtest Du in die Tasche tun?
-$ Schraubendreher
+> Schraubendreher
 In der Tasche befinden sich:
 Schraubendreher
 Was möchtest Du in die Tasche tun?
-$ Hammer
+> Hammer
 In der Tasche befinden sich:
 Schraubendreher
 Hammer
@@ -329,7 +323,7 @@ end
 
 ---
 
-## Aufgabe 1.3
+### Aufgabe 1.3
 
 Erweitere die Lösung von Aufgabe 1.2: Es sollen maximal 5 Sachen in die Tasche
 passen. Die Aufzählung soll erst erfolgen, wenn die Tasche voll ist. Löse die
@@ -339,9 +333,9 @@ Beispiel:
 
 ```text
 Was möchtest Du in die Tasche tun?
-$ Zitronen
+> Zitronen
 Was möchtest Du in die Tasche tun?
-$ Orangen
+> Orangen
 ...
 Die Tasche ist nun voll und enthält:
 Zitronen
@@ -468,7 +462,7 @@ Jetzt sind die Elemente nach der entfernten Position um 1 aufgerückt:
 
 ---
 
-## Aufgabe 2.1
+### Aufgabe 2.1
 
 Du hast eine Tabelle mit den Namen von Geburtstagsgästen:
 
@@ -489,7 +483,7 @@ table.insert(gaeste, 1, "theodor")
 
 ---
 
-## Aufgabe 2.2
+### Aufgabe 2.2
 
 Michael hat abgesagt und Du möchtest ihn von der Liste streichen. Anstatt
 mühsam von Hand die entsprechende Position (bzw. den Index) zu ermitteln,
@@ -617,7 +611,7 @@ Erklärung:
 
 ---
 
-## Aufgabe 3
+### Aufgabe 3
 
 Erweitere das letzte Programmbeispiel, sodass es neue Wörter lernen kann. Wenn
 ein Wort unbekannt ist, soll das Programm nach einer Übersetzung fragen und
@@ -626,11 +620,11 @@ Konsole. Es soll folgendes Verhalten zeigen:
 
 ```text
 Bitte gib ein Wort ein.
-$ buch
+> buch
 Das Wort 'buch' ist mir unbekannt. Bitte gib eine Übersetzung ein.
-$ book
+> book
 Bitte gib ein Wort ein.
-$ buch
+> buch
 book
 ```
 

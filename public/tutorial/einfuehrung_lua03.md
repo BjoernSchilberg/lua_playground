@@ -6,17 +6,9 @@
 * [Code wiederholen mit `while`](#code-wiederholen-mit-while)
 * [Mit `break` aus der Schleife herausspringen](#mit-break-aus-der-schleife-herausspringen)
 * [Zahlen addieren bis zur ungültigen Eingabe](#zahlen-addieren-bis-zur-ungueltigen-eingabe)
-* [Aufgabe 1.1](#aufgabe-11)
-* [Aufgabe 1.2](#aufgabe-12)
-* [Aufgabe 2](#aufgabe-2)
 * [Code wiederholen mit `for`](#code-wiederholen-mit-for)
-* [Aufgabe 3](#aufgabe-3)
-* [Aufgabe 4](#aufgabe-4)
 * [Verschachtelte `for`-Schleifen: Das kleine Einmaleins](#verschachtelte-for-schleifen-das-kleine-einmaleins)
-* [Aufgabe 5](#aufgabe-5)
-* [Aufgabe 6](#aufgabe-6)
 * [Projekt Mathetrainer](#projekt-mathetrainer)
-* [Aufgabe 7](#aufgabe-7)
 * [Anregungen zur Erweiterung des Mathetrainers](#anregungen-zur-erweiterung-des-mathetrainers)
 * [Was wir hier ausgelassen haben](#was-wir-hier-ausgelassen-haben)
 
@@ -51,7 +43,7 @@ print("Summe: " .. summe)
 Das Programm arbeitet zwar wie gewünscht, hat aber diverse Nachteile:
 
 - Im Code werden Anweisungen drei Mal identisch wiederholt
-- Wenn Du am Eingabeprocedere etwas ändern willst, dann musst Du an drei
+- Wenn Du am Eingabeablauf etwas ändern willst, dann musst Du an drei
 Stellen den Code ändern
 - Du bist unflexibel, wenn Du etwa möchtest, dass 5, 9 oder 13 Zahlen
 eingegeben werden sollen
@@ -70,7 +62,7 @@ Bedingung wahr ist.
 ![while](assets/while.png)
 
 Das folgende Beispielprogramm wiederholt alle Eingaben wie ein Echo. Das
-passiert innerhalb einer Schleife. Die läuft schlichtweg so lange, bis die
+passiert innerhalb einer Schleife. Diese läuft schlichtweg so lange, bis die
 Nutzer*in `q` eingegeben hat: `while eingabe ~= "q"`.
 
 Der markierte und eingerückte Code zwischen dem `do` und dem `end` wird
@@ -96,11 +88,11 @@ print("Du hast das Programm mit 'q' beendet.")
 Aus Sicht eines Nutzers könnte die Bedienung des Programms so aussehen:
 
 ```text
-$ dies
+> dies
 dies
-$ das
+> das
 das
-$ q
+> q
 q
 Du hast das Programm mit 'q' beendet.
 ```
@@ -116,7 +108,7 @@ Eingabe gleich `q` ist. In diesem Fall sorgt das Schlüsselwort `break` für ein
 Verlassen der Schleife.
 
 Der Vorteil dieser Variante: Wir müssen die Variable `eingabe` vor Beginn der
-Schleife nicht initialisieren.
+Schleife nicht anlegen (initialisieren).
 
 ```lua
 while true do
@@ -134,8 +126,8 @@ print("Du hast das Programm mit 'q' beendet.")
 
 ## Zahlen addieren bis zur ungültigen Eingabe
 
-Zurück zu dem am Anfang vorgestellten Beispiel, bei dem eingegebene Zahlen
-addiert werden sollen. Mit einer `while`-Schleife lässt sich ein solches
+Zurück zu dem am Anfang vorgestellten Beispiel, bei welchem eingegebene Zahlen
+addiert werden sollten. Mit einer `while`-Schleife lässt sich ein solches
 Programm eleganter und flexibler gestalten.
 
 Zur Erinnerung: Die Funktion `tonumber()` versucht, einen String in eine Zahl
@@ -162,7 +154,7 @@ print("Du hast das Programm durch eine ungültige Eingabe beendet.")
 
 ---
 
-## Aufgabe 1.1
+### Aufgabe 1.1
 
 Erweitere das letzte Programmbeispiel: Die Variable `anzahl_eingaben`
 soll auf die Anzahl der gültigen Eingaben verweisen. Nach jeder Eingabe
@@ -196,7 +188,7 @@ print("Du hast das Programm durch eine ungültige Eingabe beendet.")
 
 ---
 
-## Aufgabe 1.2
+### Aufgabe 1.2
 
 Erweitere die Lösung von Aufgabe 1.1: Es soll bei jedem Schleifendurchgang
 zusätzlich der Durchschnitt (also `summe/anzahl_eingaben`) berechnet und
@@ -231,21 +223,20 @@ print("Du hast das Programm durch eine ungültige Eingabe beendet.")
 
 ---
 
-## Aufgabe 2
+### Aufgabe 2
 
 Schreibe ein Programm, das einen Text per Nutzereingabe in einer
 `while`-Schleife zusammensetzt. Mit `q` soll aus der Schleife herausgesprungen
 werden:
 
 ```text
-$ Es
+> Es
 Es
-$ war
+> war
 Es war
-$ einmal
+> einmal
 Es war einmal
-$ q
-Ende
+> q
 ```
 
 <details>
@@ -352,9 +343,10 @@ end
 
 ---
 
-## Aufgabe 3
+### Aufgabe 3
 
-Gib die ersten 10 Vielfachen von 7 in einer `for`-Schleife im folgenden Format aus:
+Gib die ersten 10 Vielfachen von 7 in einer `for`-Schleife im folgenden Format
+aus:
 
 ```text
 1 mal 7 ist 7
@@ -375,24 +367,24 @@ end
 
 ---
 
-## Aufgabe 4
+### Aufgabe 4
 
 Schreibe ein Programm, das die Nutzerin nach Start-, Endpunkt und Schrittweite
 fragt und anschließend in einer `for`-Schleife zählt und die Zählerwerte
 ausgibt:
 
 ```text
-Startpunkt
-$ 5
-Endpunkt
-$ 7
-Schrittweite
-$ 0.5
-5
+Startpunkt:
+> 5
+Endpunkt:
+> 7
+Schrittweite:
+> 0.5
+5.0
 5.5
-6
+6.0
 6.5
-7
+7.0
 ```
 
 <details>
@@ -440,7 +432,7 @@ end
 
 ---
 
-## Aufgabe 5
+### Aufgabe 5
 
 Verändere das letzte Programmbeispiel: Es sollen nur ungerade Zahlen aus dem
 Bereich 1–20 miteinander multipliziert werden.
@@ -460,7 +452,7 @@ end
 
 ---
 
-## Aufgabe 6
+### Aufgabe 6
 
 Schau Dir die Lösung von Aufgabe 4 noch einmal an. Du kannst dort einmal
 Startpunkt, Endpunkt und Schrittweite eingeben und die entsprechende
@@ -547,7 +539,7 @@ Erklärung (bezogen auf die Zeilen im Programm):
 
 ---
 
-## Aufgabe 7
+### Aufgabe 7
 
 Verpacke den Code des Mathetrainers in eine Endlosschleife. Am Ende jedes
 Durchgangs soll gefragt werden:
@@ -627,5 +619,5 @@ es selbst aus!
 Ein weiteres wichtiges Thema im Zusammenhang mit `for`-Schleifen: Auch
 zusammengesetzte Datentypen (in Lua sind das eigentlich immer Tabellen) lassen
 sich mit `for`-Schleifen durchlaufen. Wenn etwa eine Tabelle eine Liste mit
-Zahlen enthält, dann könnte man diese per `for`-Schleife aufzählen. Das zeigen
+Zahlen enthält, dann könnte diese per `for`-Schleife ausgegeben werden. Das zeigen
 wir in Lektion 5.

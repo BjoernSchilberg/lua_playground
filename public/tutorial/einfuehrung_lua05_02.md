@@ -4,27 +4,17 @@
 
 <!-- mtoc-start -->
 
-  * [Tabelle als Objekte](#tabelle-als-objekte)
-  * [Exkurs: Schreibweisen von Funktionsdefinitionen](#exkurs-schreibweisen-von-funktionsdefinitionen)
-  * [Anwendung der Funktionen in der Tabelle `dialog`](#anwendung-der-funktionen-in-der-tabelle-dialog)
-  * [Aufgabe 4](#aufgabe-4)
-  * [Aufgabe 5](#aufgabe-5)
-  * [Aufgabe 6](#aufgabe-6)
-* [Tabellen als Objekte (objektorientiert in Lua)](#tabellen-als-objekte-objektorientiert-in-lua)
-  * [Ein einfacher Punktezähler](#ein-einfacher-punktezaehler)
-  * [Der Haken an der ersten Version des Punktezählers](#der-haken-an-der-ersten-version-des-punktezaehlers)
-  * [Aufgabe 7](#aufgabe-7)
-  * [Aufgabe 8](#aufgabe-8)
-  * [Aufgabe 9](#aufgabe-9)
-  * [Es geht noch besser: Eine Fabrik für Punktezähler](#es-geht-noch-besser-eine-fabrik-fuer-punktezaehler)
-* [Was wir hier ausgelassen haben & Schlusswort](#was-wir-hier-ausgelassen-haben--schlusswort)
-  * [Verschachtelte Tabellen](#verschachtelte-tabellen)
-  * [Metatabellen](#metatabellen)
-  * [Quellen zum Weiterlernen](#quellen-zum-weiterlernen)
-    * [Technische Bücher](#technische-buecher)
+* [Tabelle als Objekte](#tabelle-als-objekte)
+* [Exkurs: Schreibweisen von Funktionsdefinitionen](#exkurs-schreibweisen-von-funktionsdefinitionen)
+* [Anwendung der Funktionen in der Tabelle `dialog`](#anwendung-der-funktionen-in-der-tabelle-dialog)
+* [Ein einfacher Punktezähler](#ein-einfacher-punktezaehler)
+* [Der Haken an der ersten Version des Punktezählers](#der-haken-an-der-ersten-version-des-punktezaehlers)
+* [Es geht noch besser: Eine Fabrik für Punktezähler](#es-geht-noch-besser-eine-fabrik-fuer-punktezaehler)
+* [Verschachtelte Tabellen](#verschachtelte-tabellen)
+* [Metatabellen](#metatabellen)
+* [Quellen zum Weiterlernen](#quellen-zum-weiterlernen)
 
 <!-- mtoc-end -->
-
 ## Tabelle als Objekte
 
 In den bisherigen Beispielen dieser Lektion haben wir lediglich Strings in
@@ -96,13 +86,13 @@ Die Benutzung der Funktionen aus der Tabelle `dialog` sieht aus wie folgt –
 ganz genau so wie bei `io.read()` oder `math.random()`:
 
 ```text
-$ dialog.begruessung()
+> dialog.begruessung()
 Hallo, wie geht's?
-$ dialog.abschied()
+> dialog.abschied()
 Tschüss, mach's gut!
 ```
 
-Man könnte die Funktion auch so aufrufen – unnötig kompliziert, aber inhaltlich
+Die Funktion könnte auch so aufgerufen werden – unnötig kompliziert, aber inhaltlich
 korrekt:
 
 ```lua
@@ -116,7 +106,7 @@ Weil genau das im Hintergrund passiert:
 
 ---
 
-## Aufgabe 4
+### Aufgabe 4
 
 Füge der Tabelle `dialog` eine weitere Funktion `smalltalk()` hinzu, die bei
 Aufruf eine Gesprächsfloskel wie „Schönes Wetter heute.“ ausgibt. Teste das
@@ -147,15 +137,15 @@ dialog = {
 
 ---
 
-## Aufgabe 5
+### Aufgabe 5
 
 Gestalte die Dialog-Funktionen etwas persönlicher: Bei `dialog.begruessung()`
 soll ein Name als Argument übergeben und in den Gruß eingebaut werden:
 
 ```text
-$ dialog.begruessung("Maria")
+> dialog.begruessung("Maria")
 Hallo Maria, wie geht's?
-$ dialog.abschied("Maria")
+> dialog.abschied("Maria")
 Tschüss Maria, mach's gut!
 ```
 
@@ -185,7 +175,7 @@ dialog = {
 
 ---
 
-## Aufgabe 6
+### Aufgabe 6
 
 `math` ist eine Tabelle, die Funktionen enthält – wir haben sie bereits in
 Lektion 2 verwendet, um mit `math.random()` Zufallszahlen zu erzeugen. Kannst
@@ -271,13 +261,13 @@ Eine Anwendung auf der Konsole sieht dann so aus. Jeder Aufruf der Funktion
 `punkten()` erhöht den Punktestand um 1:
 
 ```text
-$ p.drucken()
+> p.drucken()
 Punktestand Sigrid: 0
-$ p.punkten()
-$ p.drucken()
+> p.punkten()
+> p.drucken()
 Punktestand Sigrid: 1
-$ p.punkten()
-$ p.drucken()
+> p.punkten()
+> p.drucken()
 Punktestand Sigrid: 2
 ```
 
@@ -338,7 +328,7 @@ Die Anwendung dieses modifizierten Punktezählers auf der Konsole könnte so
 aussehen:
 
 ```text
-$ p1.drucken(p1)
+> p1.drucken(p1)
 Punktestand Sigrid: 0
 ```
 
@@ -347,13 +337,13 @@ Lua eine verkürzte Schreibweise: Wenn wir statt eines Punktes einen Doppelpunkt
 schreiben, wird die Tabelle selbst automatisch als erstes Argument eingesetzt:
 
 ```text
-$ p1:drucken()
+> p1:drucken()
 Punktestand Sigrid: 0
 ```
 
 ---
 
-## Aufgabe 7
+### Aufgabe 7
 
 Teste die beiden Punktezähler `p1` und `p2` auf der Konsole mit der
 vorgestellten Schreibweise. Überzeuge Dich davon, dass die beiden Zähler
@@ -361,7 +351,7 @@ unabhängig voneinander sind.
 
 ---
 
-## Aufgabe 8
+### Aufgabe 8
 
 Füge den Punktezählern eine Funktion `zuruecksetzen()` hinzu, welche den
 Punktestand auf `0` setzt. Teste die Funktion auf der Konsole.
@@ -403,7 +393,7 @@ p2 = {
 
 ---
 
-## Aufgabe 9
+### Aufgabe 9
 
 Füge dem Punktezähler eine weitere Funktion `bonus()` hinzu, welche ein Argument
 `betrag` erwartet und den Punktestand um den Betrag erhöht. Teste die Funktion
@@ -460,8 +450,8 @@ Zähler jede Menge Code schreiben.
 
 Zum Schluss zeigen wir eine Variante, die noch knapper ist. Hier definieren wir
 eine Funktion `erzeuge_zaehler()`, die jeweils einen kompletten Zähler
-zurückliefert. Eine Funktion, die Objekte produziert, nennt man übrigens auch
-**Fabrik** (englisch: *Factory*).
+zurückliefert. Eine Funktion, die Objekte produziert, wird übrigens
+**Fabrik** (englisch: *Factory*) genannt.
 
 ```lua
 function punkten(self)

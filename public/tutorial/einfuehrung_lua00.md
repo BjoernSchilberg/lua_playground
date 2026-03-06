@@ -9,13 +9,8 @@
 * [4) Rechnen und Operatoren](#4-rechnen-und-operatoren)
 * [5) Bedingungen](#5-bedingungen)
 * [6) Schleifen](#6-schleifen)
-  * [6.1 `for`-Schleife (Zählschleife)](#61-for-schleife-zaehlschleife)
-  * [6.2 `while`-Schleife](#62-while-schleife)
-  * [6.3 `repeat ... until`](#63-repeat--until)
 * [7) Funktionen](#7-funktionen)
 * [8) Tabellen](#8-tabellen)
-  * [8.1 Als Liste (Array)](#81-als-liste-array)
-  * [8.2 Als Wörterbuch (Key-Value)](#82-als-woerterbuch-key-value)
 * [9) Ein kleines Mini-Projekt: Zahlen raten](#9-ein-kleines-mini-projekt-zahlen-raten)
 * [10) Häufige Stolperstellen](#10-haeufige-stolperstellen)
 * [11) Nützliche Standardfunktionen (kleine Auswahl)](#11-nuetzliche-standardfunktionen-kleine-auswahl)
@@ -231,7 +226,7 @@ for key, value in pairs(person) do
 end
 ```
 
-Für Listen nutzt man oft `ipairs`:
+Für Listen wird oft `ipairs` genutzt:
 
 ```lua
 for i, v in ipairs(farben) do

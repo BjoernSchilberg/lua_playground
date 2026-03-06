@@ -8,18 +8,11 @@
 * [Rechnen](#rechnen)
 * [Automatische Ausgabe des letzten Ergebnisses](#automatische-ausgabe-des-letzten-ergebnisses)
 * [Variablen](#variablen)
-  * [Regeln für Variablen](#regeln-fuer-variablen)
 * [Zeichenketten](#zeichenketten)
-  * [Mehrere Variablen für denselben Wert](#mehrere-variablen-fuer-denselben-wert)
 * [Zeichenketten zusammenbauen](#zeichenketten-zusammenbauen)
 * [Datentypen](#datentypen)
 * [Der spezielle Datentyp `nil`](#der-spezielle-datentyp-nil)
-* [Aufgabe 1.1](#aufgabe-11)
-* [Aufgabe 1.2](#aufgabe-12)
-* [Aufgabe 1.3](#aufgabe-13)
 * [Was wir hier ausgelassen haben](#was-wir-hier-ausgelassen-haben)
-  * [Der Gültigkeitsbereich von Variablen](#der-gueltigkeitsbereich-von-variablen)
-  * [`io.write()` statt `print()`](#iowrite-statt-print)
 
 <!-- mtoc-end -->
 
@@ -291,15 +284,15 @@ In den nächsten Lektionen werden wir noch folgende Datentypen vorstellen:
 
 ---
 
-## Aufgabe 1.1
+### Aufgabe 1.1
 
 Stell Dir vor, Du möchtest Bonbons verkaufen. Du weißt, wie viele Bonbons Du
 verkaufen willst und wie viel ein Bonbon kostet. Daraus möchtest Du den
 Gesamtpreis berechnen.
 
-Speichere dafür eine ganze Zahl (zum Beispiel `7`) unter dem Variablen
-`anzahl_bonbons` und eine weitere Zahl (wie `0.19`) unter dem Variablen
-`stueckpreis`. Berechne den Gesamtpreis und speichere ihn unter dem Variablen
+Speichere dafür eine ganze Zahl (zum Beispiel `7`) mit Hilfe der Variablen
+`anzahl_bonbons` und eine weitere Zahl (wie `0.19`) unter als Variable
+`stueckpreis`. Berechne den Gesamtpreis und speichere diesen als Variable
 `gesamtpreis`. Gib das Ergebnis aus.
 
 <details>
@@ -317,7 +310,7 @@ Speichere dafür eine ganze Zahl (zum Beispiel `7`) unter dem Variablen
 
 ---
 
-## Aufgabe 1.2
+### Aufgabe 1.2
 
 Gib der Variablen `anzahl_bonbons` einen neuen Wert (zum Beispiel `9`) und
 berechne den Gesamtpreis erneut und gib diesen aus.
@@ -332,7 +325,7 @@ berechne den Gesamtpreis erneut und gib diesen aus.
 
 ---
 
-## Aufgabe 1.3
+### Aufgabe 1.3
 
 Gib den Gesamtpreis in einer schöneren Form aus:
 
@@ -344,25 +337,29 @@ Du kannst hierfür Zeichenketten und Zahlen mit `..` verbinden.
 
 <details>
 <summary>▽ Lösung</summary>
+
+```text
 > print(anzahl_bonbons .. " Bonbons kosten " .. gesamtpreis .. " Euro.")
 9 Bonbons kosten 1.71 €.
+```
+
 </details>
 
 ---
 
 ## Was wir hier ausgelassen haben
 
-Diese Lektion versteht sich als Rundgang durch die Sprache Lua. Vieles können wir
-daher nicht eingehend behandeln, liefern aber am Ende einer jeden Lektion
+Diese Lektion versteht sich als Rundgang durch die Sprache Lua. Vieles können
+wir daher nicht eingehend behandeln, liefern aber am Ende einer jeden Lektion
 Nachschlag und skizzieren ein paar weitere Themen.
 
 ### Der Gültigkeitsbereich von Variablen
 
-Die Variablen, so wie wir sie in allen Beispielen dieses Kurses verwenden, sind
-global gültig. Das bedeutet, dass sie an jeder Stelle des Programms sichtbar
+Die Variablen, so wie wir diese in allen Beispielen dieses Kurses verwenden, sind
+global gültig. Das bedeutet, dass diese an jeder Stelle des Programms sichtbar
 sind. Das ist für die kleinen Programmbeispiele in diesem Kurs kein Problem.
 
-Bei größeren Projekten ist globale Sichtbarkeit ein No-Go. Stellt euch vor,
+Bei größeren Projekten ist globale Sichtbarkeit ein **No-Go**. Stellt euch vor,
 sämtlicher Funkverkehr von Feuerwehr, Rettungsdiensten und Polizei einer
 Großstadt würde über den selben Kanal gehen. Ein ähnliches Chaos wird in einem
 großen Programm passieren, in dem alle Variablen global sind.
@@ -381,6 +378,6 @@ ihr wollt, dass das nicht passiert, verwendet die Funktion `io.write()`.
 
 Damit lassen sich zum Beispiel schönere Dialoge und ASCII-Grafiken bauen.
 Nebenbei bemerkt lassen sich mit `io.write()` auch Textdateien schreiben (wenn
-man den Ausgabestrom von der Konsole auf eine Datei umlenkt). Ebenso könnt ihr
+der Ausgabestrom von der Konsole auf eine Datei umgelenkt wird). Ebenso könnt ihr
 `io.read()` zum Lesen einer Datei verwenden. Dieses Thema hat in dieser
 Einführung keinen Platz gefunden.

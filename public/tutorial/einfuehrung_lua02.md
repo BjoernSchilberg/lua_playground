@@ -5,19 +5,13 @@
 
 * [Text eingeben](#text-eingeben)
 * [Strings in Zahlen umwandeln](#strings-in-zahlen-umwandeln)
-* [Aufgabe 1](#aufgabe-1)
 * [Bedingungen](#bedingungen)
 * [Vergleichsoperatoren](#vergleichsoperatoren)
 * [Zuweisung oder Vergleich](#zuweisung-oder-vergleich)
 * [Ein paar Fingerübungen mit Vergleichsoperatoren](#ein-paar-fingeruebungen-mit-vergleichsoperatoren)
 * [Bedingte Ausführung mit `if` und `else`](#bedingte-ausfuehrung-mit-if-und-else)
-* [Aufgabe 2](#aufgabe-2)
 * [Verschachtelte `if`-Anweisungen](#verschachtelte-if-anweisungen)
-* [Aufgabe 3](#aufgabe-3)
 * [Logische Operatoren](#logische-operatoren)
-* [Aufgabe 4](#aufgabe-4)
-* [Aufgabe 5](#aufgabe-5)
-* [Aufgabe 6](#aufgabe-6)
 * [Was wir hier ausgelassen haben](#was-wir-hier-ausgelassen-haben)
 
 <!-- mtoc-end -->
@@ -26,12 +20,12 @@
 
 Selbstverständlich ist es auch möglich, Eingaben von Nutzerinnen zu
 verarbeiten. Das erledigt die Funktion `io.read()`. Diese liefert einen
-Rückgabewert, welchen ihr zur weiteren Verarbeitung unter einer Variablen
+Rückgabewert, welchen ihr zur weiteren Verarbeitung mit Hilfe einer Variablen
 speichern könnt.
 
-Das passiert auch in dem folgenden Programmbeispiel. Es fragt nach einen Namen.
+Das passiert auch in dem folgenden Programmbeispiel. Dieser fragt nach einen Namen.
 Die Eingabe wird hier der Variable `name` zugewiesen.
-Die letzte Zeile verwendet `name`, um eine „persönliche“ Begrüßung
+Die letzte Zeile verwendet die Variable `name`, um eine „persönliche“ Begrüßung
 auszugeben.
 
 ```lua
@@ -101,7 +95,7 @@ wenn sie keinen Zahlenwert ermitteln konnte, `nil` zurückliefert.
 ---
 
 
-## Aufgabe 1
+### Aufgabe 1
 
 Schreib ein Programm, dass zunächst danach fragt, wie viele Bonbons gekauft
 werden sollen; als zweites soll es fragen, wie viel ein Bonbon kostet. Danach
@@ -214,8 +208,8 @@ print(a > b)
 print(a < b)
 ```
 
-Auch die Ergebnisse von booleschen Ausdrücken lassen sich unter Variablenn
-speichern:
+Auch die Ergebnisse von booleschen Ausdrücken lassen sich mit Hifle von
+Variablen speichern:
 
 ```lua
 bedingung = 10 == 10
@@ -269,7 +263,7 @@ Variablen verwendet werden.
 
 ---
 
-## Aufgabe 2
+### Aufgabe 2
 
 Schreib ein Programm, das eine Rechenaufgabe stellt. Wenn der Nutzer die
 richtige Lösung eingibt, soll das Programm „Richtig!“ ausgeben, sonst „Leider
@@ -329,7 +323,7 @@ end
 
 ---
 
-## Aufgabe 3
+### Aufgabe 3
 
 Erweitere das letzte Codebeispiel: Der Eintrittspreis soll vom Guthaben
 abgezogen werden. Gib am Ende des Programms das Guthaben in folgender Form aus:
@@ -393,15 +387,14 @@ if (alter >= altersbeschraenkung) and (guthaben >= eintrittspreis) then
 end
 ```
 
-Eine typische Anwendung für `or` ist es, festzustellen, ob ein Wert innerhalb
-eines bestimmten Bereiches liegt (Hinweis: *dieses* Beispiel nutzt `or`, um die
-Idee zu zeigen; für „zwischen 0 und 10“ wäre `and` die passendere Wahl):
+Eine typische Anwendung für `or` ist es, festzustellen, ob ein Wert ausserhalb
+eines bestimmten Bereichs liegt. 
 
 ```lua
-if (wert > 0) or (wert < 10) then
-  print("Der Wert liegt zwischen 0 und 10")
+if (wert < 0) or (wert > 10) then
+  print("Der Wert liegt außerhalb von 0..10.")
 else
-  print("Der Wert liegt nicht zwischen 0 und 10")
+  print("Der Wert liegt innerhalb von 0..10 (inklusive 0 und 10).")
 end
 ```
 
@@ -427,7 +420,7 @@ end
 
 ---
 
-## Aufgabe 4
+### Aufgabe 4
 
 Schreibe einen Ausdruck, der `true` ergibt, wenn `wert` genau zwischen 10 und
 20 ist, sonst `false`.
@@ -443,7 +436,7 @@ wert > 10 and wert < 20
 
 ---
 
-## Aufgabe 5
+### Aufgabe 5
 
 Modifiziere die Lösung von Aufgabe 4, sodass sie auch `true` ergibt, wenn
 `wert` exakt 10 oder 20 ist.
@@ -459,7 +452,7 @@ wert >= 10 and wert <= 20
 
 ---
 
-## Aufgabe 6
+### Aufgabe 6
 
 Schreibe einen Ausdruck, welcher dann wahr ist, wenn `wert` exakt 5 oder 7 ist.
 
