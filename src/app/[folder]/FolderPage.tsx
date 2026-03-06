@@ -307,7 +307,7 @@ export default function FolderPage() {
             <div
               onMouseDown={startWorldVDrag}
               onTouchStart={startWorldVDrag}
-              className="h-0.5 cursor-row-resize hover:!bg-blue-500 active:!bg-blue-500 transition-colors shrink-0 touch-none"
+              className="relative h-0.5 cursor-row-resize hover:!bg-blue-500 active:!bg-blue-500 transition-colors shrink-0 touch-none before:absolute before:-top-2.5 before:left-0 before:right-0 before:h-6 before:content-[''] before:z-10"
               style={{ backgroundColor: ctx.ui.border }}
             />
             <div className="min-h-0 flex flex-col" style={{ flex: `${100 - worldPct} 0 0%` }}>

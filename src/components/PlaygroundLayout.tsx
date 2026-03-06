@@ -409,7 +409,7 @@ export default function PlaygroundLayout({
           <div
             onMouseDown={resize.startVDrag}
             onTouchStart={resize.startVDrag}
-            className="h-0.5 cursor-row-resize hover:!bg-blue-500 active:!bg-blue-500 transition-colors shrink-0 touch-none"
+            className="relative h-0.5 cursor-row-resize hover:!bg-blue-500 active:!bg-blue-500 transition-colors shrink-0 touch-none before:absolute before:-top-2.5 before:left-0 before:right-0 before:h-6 before:content-[''] before:z-10"
             style={{ backgroundColor: ui.handle }}
           />
 
@@ -439,7 +439,7 @@ export default function PlaygroundLayout({
           <div
             onMouseDown={resize.startHDrag}
             onTouchStart={resize.startHDrag}
-            className="w-0.5 cursor-col-resize hover:!bg-blue-500 active:!bg-blue-500 transition-colors shrink-0 touch-none"
+            className="relative w-0.5 cursor-col-resize hover:!bg-blue-500 active:!bg-blue-500 transition-colors shrink-0 touch-none before:absolute before:top-0 before:-left-2.5 before:bottom-0 before:w-6 before:content-[''] before:z-10"
             style={{ backgroundColor: ui.handle }}
           />
           {rightContent}
