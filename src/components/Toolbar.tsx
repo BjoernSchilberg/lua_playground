@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import type { UiColors } from "@/lib/uiColors";
 import type { WorkerState } from "@/lib/protocol";
 import { EXAMPLE_GROUPS, STATUS_LABELS, STATUS_COLORS } from "@/lib/constants";
+import { isMac } from "@/lib/platform";
 import { getSavedScripts, saveScript, deleteScript } from "@/lib/storage";
 
 interface ToolbarProps {
@@ -173,7 +174,7 @@ export default function Toolbar({
         <span
           className="cursor-pointer hover:opacity-75 transition-opacity"
           onClick={onPaletteOpen}
-          title="Command Palette (Ctrl+Shift+P)"
+          title={`Command Palette (${isMac ? "⌘+⇧+P" : "Ctrl+Shift+P"})`}
         >🌙</span>{!compact && <>{" "}Lua Playground</>}
       </h1>
 
@@ -200,7 +201,7 @@ export default function Toolbar({
               onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
             >
               <span>📝 Neu</span>
-              <kbd className="text-xs opacity-50">Alt+N</kbd>
+              <kbd className="text-xs opacity-50">{isMac ? "⌥+N" : "Alt+N"}</kbd>
             </button>
 
             {/* Save */}
@@ -368,7 +369,7 @@ export default function Toolbar({
         onClick={onRun}
         disabled={!ready || isBusy}
         className="shrink-0 px-3 py-1 rounded bg-green-700 hover:bg-green-600 disabled:opacity-40 disabled:cursor-not-allowed text-sm font-semibold transition-colors"
-        title="Run (Ctrl+Enter)"
+        title={`Run (${isMac ? "⌘+Enter" : "Ctrl+Enter"})`}
       >
         ▶{!compact && " Run"}
       </button>

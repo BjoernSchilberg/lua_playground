@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback, type ReactNode } from "react";
 import basePath from "@/lib/basePath";
+import { isMac } from "@/lib/platform";
 import { DEFAULT_CODE } from "@/lib/constants";
 import { useLuaWorker } from "@/hooks/useLuaWorker";
 import { useThemePalette } from "@/hooks/useThemePalette";
@@ -208,24 +209,28 @@ export default function PlaygroundLayout({
       run: () => setVimEnabled((v) => !v),
     });
 
+    /* On Mac, use physical Ctrl (WinCtrl) for font zoom to avoid
+       conflicting with Safari's Cmd+=/Cmd+-/Cmd+0 browser zoom. */
+    const zoomMod = isMac ? monaco.KeyMod.WinCtrl : monaco.KeyMod.CtrlCmd;
+
     editorInstance.addAction({
       id: "lua-playground.fontZoomIn",
       label: "Font Zoom In",
-      keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Equal],
+      keybindings: [zoomMod | monaco.KeyCode.Equal],
       run: (ed) => ed.getAction("editor.action.fontZoomIn")?.run(),
     });
 
     editorInstance.addAction({
       id: "lua-playground.fontZoomOut",
       label: "Font Zoom Out",
-      keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Minus],
+      keybindings: [zoomMod | monaco.KeyCode.Minus],
       run: (ed) => ed.getAction("editor.action.fontZoomOut")?.run(),
     });
 
     editorInstance.addAction({
       id: "lua-playground.fontZoomReset",
       label: "Font Zoom Reset",
-      keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Digit0],
+      keybindings: [zoomMod | monaco.KeyCode.Digit0],
       run: (ed) => ed.getAction("editor.action.fontZoomReset")?.run(),
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -263,7 +268,7 @@ export default function PlaygroundLayout({
   /* ---- Global keyboard shortcuts ---- */
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.key.toLowerCase() === "n") {
+      if (e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && (e.key.toLowerCase() === "n" || e.code === "KeyN")) {
         e.preventDefault();
         setCodeExt("");
         setCurrentFileName("");

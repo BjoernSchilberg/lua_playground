@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useMemo, useEffect } from "react";
 import { loadThemeList, fetchThemeData, isBuiltin, getThemeColors, type ThemeEntry } from "@/lib/monacoThemes";
 import { deriveUiColors } from "@/lib/uiColors";
+import { isMac } from "@/lib/platform";
 import type { PaletteItem } from "@/components/CommandPalette";
 import type { Monaco } from "@monaco-editor/react";
 import type { editor } from "monaco-editor";
@@ -71,22 +72,22 @@ export function useThemePalette({
   /* ---- Command palette items ---- */
   const paletteItems: PaletteItem[] = useMemo(
     () => [
-      { id: "run:start", label: "Run", category: "Lua", shortcut: "Ctrl+Enter" },
+      { id: "run:start", label: "Run", category: "Lua", shortcut: isMac ? "⌘+Enter" : "Ctrl+Enter" },
       { id: "run:step", label: "Step (Einzelschritt)", category: "Lua", shortcut: "F10" },
       { id: "run:stop", label: "Stop", category: "Lua" },
       { id: "run:reset", label: "Reset", category: "Lua" },
-      { id: "clipboard:copy", label: "Copy", category: "Clipboard", shortcut: "Ctrl+C" },
-      { id: "clipboard:cut", label: "Cut", category: "Clipboard", shortcut: "Ctrl+X" },
-      { id: "clipboard:paste", label: "Paste", category: "Clipboard", shortcut: "Ctrl+V" },
-      { id: "file:new", label: "Neu", category: "File", shortcut: "Alt+N" },
+      { id: "clipboard:copy", label: "Copy", category: "Clipboard", shortcut: isMac ? "⌘+C" : "Ctrl+C" },
+      { id: "clipboard:cut", label: "Cut", category: "Clipboard", shortcut: isMac ? "⌘+X" : "Ctrl+X" },
+      { id: "clipboard:paste", label: "Paste", category: "Clipboard", shortcut: isMac ? "⌘+V" : "Ctrl+V" },
+      { id: "file:new", label: "Neu", category: "File", shortcut: isMac ? "Option+N" : "Alt+N" },
       { id: "file:save", label: "Speichern…", category: "File" },
       { id: "file:download", label: "Download .lua", category: "File" },
       { id: "file:open", label: "Datei öffnen…", category: "File" },
       { id: "format:document", label: "Format Document", category: "Editor" },
       { id: "vim:toggle", label: vimEnabled ? "Disable Vim Mode" : "Enable Vim Mode", category: "Editor" },
-      { id: "font:zoomIn", label: "Font Zoom In", category: "Editor", shortcut:"Ctrl++" },
-      { id: "font:zoomOut", label: "Font Zoom Out", category: "Editor",shortcut:"Ctrl+-" },
-      { id: "font:zoomReset", label: "Font Zoom Reset", category: "Editor",shortcut:"Ctrl+0" },
+      { id: "font:zoomIn", label: "Font Zoom In", category: "Editor", shortcut: isMac ? "Control++" : "Ctrl++" },
+      { id: "font:zoomOut", label: "Font Zoom Out", category: "Editor", shortcut: isMac ? "Control+-" : "Ctrl+-" },
+      { id: "font:zoomReset", label: "Font Zoom Reset", category: "Editor", shortcut: isMac ? "Control+0" : "Ctrl+0" },
       { id: "editor:lineNumbers", label: lineNumbers ? "Hide Line Numbers" : "Show Line Numbers", category: "Editor" },
       { id: "editor:toggleWorld", label: showWorld ? "Hide Isometric World" : "Show Isometric World", category: "Editor" },
       ...themeList.map((t) => ({ id: `theme:${t.id}`, label: t.label, category: "Theme" })),
