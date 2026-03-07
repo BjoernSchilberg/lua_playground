@@ -11,12 +11,9 @@ interface Rock3DProps {
 
 export default function Rock3D({ position = [0, 0, 0] }: Rock3DProps) {
   return (
-    <group position={position}>
-      <mesh position={[0, 0.25, 0]} castShadow material={MAT_MAIN}>
-        <boxGeometry args={[0.6, 0.35, 0.5]} />
-      </mesh>
-      <mesh position={[0.05, 0.45, -0.02]} castShadow material={MAT_EDGE}>
-        <boxGeometry args={[0.35, 0.12, 0.28]} />
+    <group position={position} scale={[0.75, 0.75, 0.75]}>
+      <mesh position={[0, 0.5, 0]} castShadow material={MAT_MAIN} >
+        <boxGeometry args={[0.75, 0.75, 0.75]} />
       </mesh>
     </group>
   );
