@@ -11,7 +11,7 @@ interface Tree3DProps {
 
 export default function Tree3D({ position = [0, 0, 0] }: Tree3DProps) {
   return (
-    <group position={position}>
+    <group position={position} scale={[1.3, 1.3, 1.3]}>
       {/* Trunk — small isometric cube matching tree.svg */}
       <mesh position={[0, 0.24, 0]} castShadow material={MAT_TRUNK}>
         <boxGeometry args={[0.2, 0.35, 0.2]} />
