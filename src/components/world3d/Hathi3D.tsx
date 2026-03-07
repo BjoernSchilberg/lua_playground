@@ -150,7 +150,7 @@ export default function Hathi3D({ row, col, dir, centerX, centerZ, speed }: Hath
   const initRot = DIR_ROTATION[dir] ?? 0;
 
   return (
-    <group ref={groupRef} position={[initX, 0, initZ]} rotation={[0, initRot, 0]}>
+    <group ref={groupRef} position={[initX, 0, initZ]} rotation={[0, initRot, 0]} scale={[1.75, 1.75, 1.75]}>
       {/* Body — isometric block with per-face colors */}
       <mesh position={[0, 0.34, 0]} castShadow material={bodyMats}>
         <boxGeometry args={[0.42, 0.3, 0.55]} />
