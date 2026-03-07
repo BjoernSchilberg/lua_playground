@@ -1,25 +1,18 @@
 "use client";
 
-import * as THREE from "three";
-
-const MAT_STEM = new THREE.MeshLambertMaterial({ color: "#884a13" });
-const MAT_BANANA = new THREE.MeshLambertMaterial({ color: "#ffc701" });
+import { useGLTF } from "@react-three/drei";
+import basePath from "@/lib/basePath";
 
 interface Bananas3DProps {
   position?: [number, number, number];
 }
 
 export default function Bananas3D({ position = [0, 0, 0] }: Bananas3DProps) {
+  const { scene } = useGLTF(`${basePath}/models/banana.glb`);
+
   return (
     <group position={position}>
-      {/* Stem/post */}
-      <mesh position={[0, 0.22, 0]} castShadow material={MAT_STEM}>
-        <boxGeometry args={[0.06, 0.3, 0.06]} />
-      </mesh>
-      {/* Banana bunch */}
-      <mesh position={[0, 0.14, 0]} castShadow material={MAT_BANANA}>
-        <boxGeometry args={[0.28, 0.14, 0.22]} />
-      </mesh>
+      <primitive object={scene.clone()} position={[0, 0.125, 0]} scale={[0.75, 0.75, 0.75]} castShadow />
     </group>
   );
 }
