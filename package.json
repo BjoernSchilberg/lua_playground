@@ -17,7 +17,7 @@
     "@wasm-fmt/lua_fmt": "^0.3.2",
     "highlight.js": "^11.11.1",
     "monaco-vim": "^0.4.4",
-    "next": "16.1.6",
+    "next": "16.1.7",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-markdown": "^10.1.0",
